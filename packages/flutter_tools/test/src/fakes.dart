@@ -22,7 +22,7 @@ class FakeDyldEnvironmentArtifact extends ArtifactSet {
   FakeDyldEnvironmentArtifact() : super(DevelopmentArtifact.iOS);
   @override
   Map<String, String> get environment => <String, String>{
-    'DYLD_LIBRARY_PATH': '/path/to/libraries'
+    'DYLD_LIBRARY_PATH': '/path/to/libraries',
   };
 
   @override
@@ -32,7 +32,7 @@ class FakeDyldEnvironmentArtifact extends ArtifactSet {
   String get name => 'fake';
 
   @override
-  Future<void> update(ArtifactUpdater artifactUpdater, Logger logger, FileSystem fileSystem, OperatingSystemUtils operatingSystemUtils) async {
+  Future<void> update(ArtifactUpdater artifactUpdater, Logger logger, FileSystem fileSystem, OperatingSystemUtils operatingSystemUtils, {bool offline = false}) async {
   }
 }
 
@@ -66,51 +66,6 @@ class FakeProcess implements Process {
   bool kill([io.ProcessSignal signal = io.ProcessSignal.sigterm]) {
     return true;
   }
-}
-
-/// A process that prompts the user to proceed, then asynchronously writes
-/// some lines to stdout before it exits.
-class PromptingProcess implements Process {
-  PromptingProcess({
-    bool stdinError = false,
-  }) : _stdin = CompleterIOSink(throwOnAdd: stdinError);
-
-  Future<void> showPrompt(String prompt, List<String> outputLines) async {
-    try {
-      _stdoutController.add(utf8.encode(prompt));
-      final List<int> bytesOnStdin = await _stdin.future;
-      // Echo stdin to stdout.
-      _stdoutController.add(bytesOnStdin);
-      if (bytesOnStdin.isNotEmpty && bytesOnStdin[0] == utf8.encode('y')[0]) {
-        for (final String line in outputLines) {
-          _stdoutController.add(utf8.encode('$line\n'));
-        }
-      }
-    } finally {
-      await _stdoutController.close();
-    }
-  }
-
-  final StreamController<List<int>> _stdoutController = StreamController<List<int>>();
-  final CompleterIOSink _stdin;
-
-  @override
-  Stream<List<int>> get stdout => _stdoutController.stream;
-
-  @override
-  Stream<List<int>> get stderr => const Stream<List<int>>.empty();
-
-  @override
-  IOSink get stdin => _stdin;
-
-  @override
-  Future<int> get exitCode async {
-    await _stdoutController.done;
-    return 0;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 /// An IOSink that completes a future with the first line written to it.
@@ -289,20 +244,26 @@ class FakeStdio extends Stdio {
 }
 
 class FakePlistParser implements PlistParser {
-  final Map<String, dynamic> _underlyingValues = <String, String>{};
+  FakePlistParser([Map<String, Object>? underlyingValues]):
+    _underlyingValues = underlyingValues ?? <String, Object>{};
 
-  void setProperty(String key, dynamic value) {
+  final Map<String, Object> _underlyingValues;
+
+  void setProperty(String key, Object value) {
     _underlyingValues[key] = value;
   }
 
   @override
-  Map<String, dynamic> parseFile(String plistFilePath) {
+  String? plistXmlContent(String plistFilePath) => throw UnimplementedError();
+
+  @override
+  Map<String, Object> parseFile(String plistFilePath) {
     return _underlyingValues;
   }
 
   @override
-  String getValueFromFile(String plistFilePath, String key) {
-    return _underlyingValues[key] as String;
+  String? getStringValueFromFile(String plistFilePath, String key) {
+    return _underlyingValues[key] as String?;
   }
 }
 
@@ -320,6 +281,7 @@ class FakeFlutterVersion implements FlutterVersion {
   FakeFlutterVersion({
     this.channel = 'unknown',
     this.dartSdkVersion = '12',
+    this.devToolsVersion = '2.8.0',
     this.engineRevision = 'abcdefghijklmnopqrstuvwxyz',
     this.engineRevisionShort = 'abcde',
     this.repositoryUrl = 'https://github.com/flutter/flutter.git',
@@ -341,6 +303,9 @@ class FakeFlutterVersion implements FlutterVersion {
   final String channel;
 
   @override
+  final String devToolsVersion;
+
+  @override
   final String dartSdkVersion;
 
   @override
@@ -350,7 +315,7 @@ class FakeFlutterVersion implements FlutterVersion {
   final String engineRevisionShort;
 
   @override
-  final String repositoryUrl;
+  final String? repositoryUrl;
 
   @override
   final String frameworkVersion;
@@ -415,7 +380,6 @@ class TestFeatureFlags implements FeatureFlags {
     this.isIOSEnabled = true,
     this.isFuchsiaEnabled = false,
     this.areCustomDevicesEnabled = false,
-    this.isWindowsUwpEnabled = false,
   });
 
   @override
@@ -446,9 +410,6 @@ class TestFeatureFlags implements FeatureFlags {
   final bool areCustomDevicesEnabled;
 
   @override
-  final bool isWindowsUwpEnabled;
-
-  @override
   bool isEnabled(Feature feature) {
     switch (feature) {
       case flutterWebFeature:
@@ -469,24 +430,9 @@ class TestFeatureFlags implements FeatureFlags {
         return isFuchsiaEnabled;
       case flutterCustomDevicesFeature:
         return areCustomDevicesEnabled;
-      case windowsUwpEmbedding:
-        return isWindowsUwpEnabled;
     }
     return false;
   }
-}
-
-class FakeStatusLogger extends DelegatingLogger {
-  FakeStatusLogger(Logger delegate) : super(delegate);
-
-  late Status status;
-
-  @override
-  Status startProgress(String message, {
-    String? progressId,
-    bool multilineOutput = false,
-    int progressIndicatorPadding = kDefaultStatusPadding,
-  }) => status;
 }
 
 class FakeOperatingSystemUtils extends Fake implements OperatingSystemUtils {

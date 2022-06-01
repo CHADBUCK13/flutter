@@ -97,6 +97,10 @@ typedef ActionListenerCallback = void Function(Action<Intent> action);
 /// developers to change that if they add an ancestor [Actions] widget that maps
 /// [SelectAllTextIntent] to a different [Action].
 ///
+/// See the article on [Using Actions and
+/// Shortcuts](https://docs.flutter.dev/development/ui/advanced/actions_and_shortcuts)
+/// for a detailed explanation.
+///
 /// See also:
 ///
 ///  * [Shortcuts], which is a widget that contains a key map, in which it looks
@@ -140,144 +144,15 @@ abstract class Action<T extends Intent> with Diagnosticable {
   /// to allow further overriding, or to allow the [Intent] to propagate to
   /// parent widgets that also support this [Intent].
   ///
-  /// {@tool sample --template=freeform}
+  /// {@tool dartpad}
   /// This sample implements a custom text input field that handles the
-  /// [DeleteTextIntent] intent, as well as a US telephone number input widget
-  /// that consists of multiple text fields for area code, prefix and line
+  /// [DeleteCharacterIntent] intent, as well as a US telephone number input
+  /// widget that consists of multiple text fields for area code, prefix and line
   /// number. When the backspace key is pressed, the phone number input widget
   /// sends the focus to the preceding text field when the currently focused
   /// field becomes empty.
   ///
-  /// ```dart imports
-  /// import 'package:flutter/material.dart';
-  /// import 'package:flutter/services.dart';
-  /// ```
-  ///
-  /// ```dart main
-  /// void main() {
-  ///   runApp(
-  ///     const MaterialApp(
-  ///       home: Scaffold(
-  ///         body: Center(child: SimpleUSPhoneNumberEntry()),
-  ///       ),
-  ///     ),
-  ///   );
-  /// }
-  /// ```
-  ///
-  /// ```dart
-  /// // This implements a custom phone number input field that handles the
-  /// // [DeleteTextIntent] intent.
-  /// class DigitInput extends StatefulWidget {
-  ///   const DigitInput({
-  ///     Key? key,
-  ///     required this.controller,
-  ///     required this.focusNode,
-  ///     this.maxLength,
-  ///     this.textInputAction = TextInputAction.next,
-  ///   }) : super(key: key);
-  ///
-  ///   final int? maxLength;
-  ///   final TextEditingController controller;
-  ///   final TextInputAction textInputAction;
-  ///   final FocusNode focusNode;
-  ///
-  ///   @override
-  ///   DigitInputState createState() => DigitInputState();
-  /// }
-  ///
-  /// class DigitInputState extends State<DigitInput> {
-  ///   late final Action<DeleteTextIntent> _deleteTextAction = CallbackAction<DeleteTextIntent>(
-  ///     onInvoke: (DeleteTextIntent intent) {
-  ///       // For simplicity we delete everything in the section.
-  ///       widget.controller.clear();
-  ///     },
-  ///   );
-  ///
-  ///   @override
-  ///   Widget build(BuildContext context) {
-  ///     return Actions(
-  ///       actions: <Type, Action<Intent>>{
-  ///         // Make the default `DeleteTextIntent` handler overridable.
-  ///         DeleteTextIntent: Action<DeleteTextIntent>.overridable(defaultAction: _deleteTextAction, context: context),
-  ///       },
-  ///       child: TextField(
-  ///         controller: widget.controller,
-  ///         textInputAction: TextInputAction.next,
-  ///         keyboardType: TextInputType.phone,
-  ///         focusNode: widget.focusNode,
-  ///         decoration: const InputDecoration(
-  ///           border: OutlineInputBorder(),
-  ///         ),
-  ///         inputFormatters: <TextInputFormatter>[
-  ///           FilteringTextInputFormatter.digitsOnly,
-  ///           LengthLimitingTextInputFormatter(widget.maxLength),
-  ///         ],
-  ///       ),
-  ///     );
-  ///   }
-  /// }
-  ///
-  /// class SimpleUSPhoneNumberEntry extends StatefulWidget {
-  ///   const SimpleUSPhoneNumberEntry({ Key? key }) : super(key: key);
-  ///
-  ///   @override
-  ///   State<SimpleUSPhoneNumberEntry> createState() => _SimpleUSPhoneNumberEntryState();
-  /// }
-  ///
-  /// class _DeleteDigit extends Action<DeleteTextIntent> {
-  ///   _DeleteDigit(this.state);
-  ///
-  ///   final _SimpleUSPhoneNumberEntryState state;
-  ///   @override
-  ///   Object? invoke(DeleteTextIntent intent) {
-  ///     assert(callingAction != null);
-  ///     callingAction?.invoke(intent);
-  ///
-  ///     if (state.lineNumberController.text.isEmpty && state.lineNumberFocusNode.hasFocus) {
-  ///       state.prefixFocusNode.requestFocus();
-  ///     }
-  ///
-  ///     if (state.prefixController.text.isEmpty && state.prefixFocusNode.hasFocus) {
-  ///       state.areaCodeFocusNode.requestFocus();
-  ///     }
-  ///   }
-  ///
-  ///   // This action is only enabled when the `callingAction` exists and is
-  ///   // enabled.
-  ///   @override
-  ///   bool get isActionEnabled => callingAction?.isActionEnabled ?? false;
-  /// }
-  ///
-  /// class _SimpleUSPhoneNumberEntryState extends State<SimpleUSPhoneNumberEntry> {
-  ///   final FocusNode areaCodeFocusNode = FocusNode();
-  ///   final TextEditingController areaCodeController = TextEditingController();
-  ///   final FocusNode prefixFocusNode = FocusNode();
-  ///   final TextEditingController prefixController = TextEditingController();
-  ///   final FocusNode lineNumberFocusNode = FocusNode();
-  ///   final TextEditingController lineNumberController = TextEditingController();
-  ///
-  ///   @override
-  ///   Widget build(BuildContext context) {
-  ///     return Actions(
-  ///       actions: <Type, Action<Intent>>{
-  ///         DeleteTextIntent : _DeleteDigit(this),
-  ///       },
-  ///       child: Row(
-  ///         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  ///         children: <Widget>[
-  ///           const Expanded(child: Text('(', textAlign: TextAlign.center,), flex: 1),
-  ///           Expanded(child: DigitInput(focusNode: areaCodeFocusNode, controller: areaCodeController, maxLength: 3), flex: 3),
-  ///           const Expanded(child: Text(')', textAlign: TextAlign.center,), flex: 1),
-  ///           Expanded(child: DigitInput(focusNode: prefixFocusNode, controller: prefixController, maxLength: 3), flex: 3),
-  ///           const Expanded(child: Text('-', textAlign: TextAlign.center,), flex: 1),
-  ///           Expanded(child: DigitInput(focusNode: lineNumberFocusNode, controller: lineNumberController, textInputAction: TextInputAction.done, maxLength: 4), flex: 4),
-  ///         ],
-  ///       ),
-  ///     );
-  ///   }
-  /// }
-  /// ```
+  /// ** See code in examples/api/lib/widgets/actions/action.action_overridable.0.dart **
   /// {@end-tool}
   factory Action.overridable({
     required Action<T> defaultAction,
@@ -289,13 +164,11 @@ abstract class Action<T extends Intent> with Diagnosticable {
   final ObserverList<ActionListenerCallback> _listeners = ObserverList<ActionListenerCallback>();
 
   Action<T>? _currentCallingAction;
-  set _callingAction(Action<T>? newAction) {
-    if (newAction == _currentCallingAction) {
-      return;
-    }
-    assert(newAction == null || _currentCallingAction == null);
-    _currentCallingAction = newAction;
+  // ignore: use_setters_to_change_properties, (code predates enabling of this lint)
+  void _updateCallingAction(Action<T>? value) {
+    _currentCallingAction = value;
   }
+
   /// The [Action] overridden by this [Action].
   ///
   /// The [Action.overridable] constructor creates an overridable [Action] that
@@ -472,17 +345,17 @@ abstract class Action<T extends Intent> with Diagnosticable {
 
     // Make a local copy so that a listener can unregister while the list is
     // being iterated over.
-    final List<ActionListenerCallback> localListeners = List<ActionListenerCallback>.from(_listeners);
+    final List<ActionListenerCallback> localListeners = List<ActionListenerCallback>.of(_listeners);
     for (final ActionListenerCallback listener in localListeners) {
       InformationCollector? collector;
       assert(() {
-        collector = () sync* {
-          yield DiagnosticsProperty<Action<T>>(
+        collector = () => <DiagnosticsNode>[
+          DiagnosticsProperty<Action<T>>(
             'The $runtimeType sending notification was',
             this,
             style: DiagnosticsTreeStyle.errorProperty,
-          );
-        };
+          ),
+        ];
         return true;
       }());
       try {
@@ -518,102 +391,11 @@ abstract class Action<T extends Intent> with Diagnosticable {
 /// this widget. If you are using an [Action] outside of a widget context, then
 /// you must call removeListener yourself.
 ///
-/// {@tool dartpad --template=stateful_widget_scaffold_center}
+/// {@tool dartpad}
 /// This example shows how ActionListener handles adding and removing of
 /// the [listener] in the widget lifecycle.
 ///
-/// ```dart preamble
-/// class ActionListenerExample extends StatefulWidget {
-///   const ActionListenerExample({Key? key}) : super(key: key);
-///
-///   @override
-///   State<ActionListenerExample> createState() => _ActionListenerExampleState();
-/// }
-///
-/// class _ActionListenerExampleState extends State<ActionListenerExample> {
-///   bool _on = false;
-///   late final MyAction _myAction;
-///
-///   @override
-///   void initState() {
-///     super.initState();
-///     _myAction = MyAction();
-///   }
-///
-///   void _toggleState() {
-///     setState(() {
-///       _on = !_on;
-///     });
-///   }
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     return Row(
-///       crossAxisAlignment: CrossAxisAlignment.center,
-///       mainAxisAlignment: MainAxisAlignment.center,
-///       children: <Widget>[
-///         Padding(
-///           padding: const EdgeInsets.all(8.0),
-///           child: OutlinedButton(
-///             onPressed: _toggleState,
-///             child: Text(_on ? 'Disable' : 'Enable'),
-///           ),
-///         ),
-///         if (_on)
-///           Padding(
-///             padding: const EdgeInsets.all(8.0),
-///             child: ActionListener(
-///               listener: (Action<Intent> action) {
-///                 if (action.intentType == MyIntent) {
-///                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-///                     content: Text('Action Listener Called'),
-///                   ));
-///                 }
-///               },
-///               action: _myAction,
-///               child: ElevatedButton(
-///                 onPressed: () => const ActionDispatcher()
-///                     .invokeAction(_myAction, const MyIntent()),
-///                 child: const Text('Call Action Listener'),
-///               ),
-///             ),
-///           ),
-///         if (!_on) Container(),
-///       ],
-///     );
-///   }
-/// }
-///
-/// class MyAction extends Action<MyIntent> {
-///   @override
-///   void addActionListener(ActionListenerCallback listener) {
-///     super.addActionListener(listener);
-///     print('Action Listener was added');
-///   }
-///
-///   @override
-///   void removeActionListener(ActionListenerCallback listener) {
-///     super.removeActionListener(listener);
-///     print('Action Listener was removed');
-///   }
-///
-///   @override
-///   void invoke(covariant MyIntent intent) {
-///     notifyActionListeners();
-///   }
-/// }
-///
-/// class MyIntent extends Intent {
-///   const MyIntent();
-/// }
-/// ```
-///
-/// ```dart
-/// @override
-/// Widget build(BuildContext context) {
-///   return const ActionListenerExample();
-/// }
-/// ```
+/// ** See code in examples/api/lib/widgets/actions/action_listener.0.dart **
 /// {@end-tool}
 ///
 @immutable
@@ -622,14 +404,13 @@ class ActionListener extends StatefulWidget {
   ///
   /// The [listener], [action], and [child] arguments must not be null.
   const ActionListener({
-    Key? key,
+    super.key,
     required this.listener,
     required this.action,
     required this.child,
   })  : assert(listener != null),
         assert(action != null),
-        assert(child != null),
-        super(key: key);
+        assert(child != null);
 
   /// The [ActionListenerCallback] callback to register with the [action].
   ///
@@ -803,8 +584,7 @@ class ActionDispatcher with Diagnosticable {
 /// Actions are typically invoked using [Actions.invoke] with the context
 /// containing the ambient [Actions] widget.
 ///
-/// {@tool dartpad --template=stateful_widget_scaffold_center}
-///
+/// {@tool dartpad}
 /// This example creates a custom [Action] subclass `ModifyAction` for modifying
 /// a model, and another, `SaveAction` for saving it.
 ///
@@ -820,149 +600,7 @@ class ActionDispatcher with Diagnosticable {
 /// need to know about the `SaveAction` class, only the `SaveIntent`, and it
 /// only needs to know about a value notifier, not the entire model.
 ///
-/// ```dart preamble
-/// // A simple model class that notifies listeners when it changes.
-/// class Model {
-///   ValueNotifier<bool> isDirty = ValueNotifier<bool>(false);
-///   ValueNotifier<int> data = ValueNotifier<int>(0);
-///
-///   int save() {
-///     if (isDirty.value) {
-///       print('Saved Data: ${data.value}');
-///       isDirty.value = false;
-///     }
-///     return data.value;
-///   }
-///
-///   void setValue(int newValue) {
-///     isDirty.value = data.value != newValue;
-///     data.value = newValue;
-///   }
-/// }
-///
-/// class ModifyIntent extends Intent {
-///   const ModifyIntent(this.value);
-///
-///   final int value;
-/// }
-///
-/// // An Action that modifies the model by setting it to the value that it gets
-/// // from the Intent passed to it when invoked.
-/// class ModifyAction extends Action<ModifyIntent> {
-///   ModifyAction(this.model);
-///
-///   final Model model;
-///
-///   @override
-///   void invoke(covariant ModifyIntent intent) {
-///     model.setValue(intent.value);
-///   }
-/// }
-///
-/// // An intent for saving data.
-/// class SaveIntent extends Intent {
-///   const SaveIntent();
-/// }
-///
-/// // An Action that saves the data in the model it is created with.
-/// class SaveAction extends Action<SaveIntent> {
-///   SaveAction(this.model);
-///
-///   final Model model;
-///
-///   @override
-///   int invoke(covariant SaveIntent intent) => model.save();
-/// }
-///
-/// class SaveButton extends StatefulWidget {
-///   const SaveButton(this.valueNotifier, {Key? key}) : super(key: key);
-///
-///   final ValueNotifier<bool> valueNotifier;
-///
-///   @override
-///   State<SaveButton> createState() => _SaveButtonState();
-/// }
-///
-/// class _SaveButtonState extends State<SaveButton> {
-///   int savedValue = 0;
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     return AnimatedBuilder(
-///       animation: widget.valueNotifier,
-///       builder: (BuildContext context, Widget? child) {
-///         return TextButton.icon(
-///           icon: const Icon(Icons.save),
-///           label: Text('$savedValue'),
-///           style: ButtonStyle(
-///             foregroundColor: MaterialStateProperty.all<Color>(
-///               widget.valueNotifier.value ? Colors.red : Colors.green,
-///             ),
-///           ),
-///           onPressed: () {
-///             setState(() {
-///               savedValue = Actions.invoke(context, const SaveIntent())! as int;
-///             });
-///           },
-///         );
-///       },
-///     );
-///   }
-/// }
-/// ```
-///
-/// ```dart
-/// Model model = Model();
-/// int count = 0;
-///
-/// @override
-/// Widget build(BuildContext context) {
-///   return Actions(
-///     actions: <Type, Action<Intent>>{
-///       ModifyIntent: ModifyAction(model),
-///       SaveIntent: SaveAction(model),
-///     },
-///     child: Builder(
-///       builder: (BuildContext context) {
-///         return Row(
-///           mainAxisAlignment: MainAxisAlignment.spaceAround,
-///           children: <Widget>[
-///             const Spacer(),
-///             Column(
-///               mainAxisAlignment: MainAxisAlignment.center,
-///               children: <Widget>[
-///                 IconButton(
-///                   icon: const Icon(Icons.exposure_plus_1),
-///                   onPressed: () {
-///                     Actions.invoke(context, ModifyIntent(++count));
-///                   },
-///                 ),
-///                 AnimatedBuilder(
-///                   animation: model.data,
-///                   builder: (BuildContext context, Widget? child) {
-///                     return Padding(
-///                       padding: const EdgeInsets.all(8.0),
-///                       child: Text('${model.data.value}',
-///                           style: Theme.of(context).textTheme.headline4),
-///                     );
-///                   }),
-///                 IconButton(
-///                   icon: const Icon(Icons.exposure_minus_1),
-///                   onPressed: () {
-///                     Actions.invoke(context, ModifyIntent(--count));
-///                   },
-///                 ),
-///               ],
-///             ),
-///             SaveButton(model.isDirty),
-///             const Spacer(),
-///           ],
-///         );
-///       },
-///     ),
-///   );
-/// }
-/// ```
+/// ** See code in examples/api/lib/widgets/actions/actions.0.dart **
 /// {@end-tool}
 ///
 /// See also:
@@ -978,13 +616,12 @@ class Actions extends StatefulWidget {
   ///
   /// The [child], [actions], and [dispatcher] arguments must not be null.
   const Actions({
-    Key? key,
+    super.key,
     this.dispatcher,
     required this.actions,
     required this.child,
   })  : assert(actions != null),
-        assert(child != null),
-        super(key: key);
+        assert(child != null);
 
   /// The [ActionDispatcher] object that invokes actions.
   ///
@@ -1372,11 +1009,9 @@ class _ActionsMarker extends InheritedWidget {
     required this.dispatcher,
     required this.actions,
     required this.rebuildKey,
-    Key? key,
-    required Widget child,
+    required super.child,
   })  : assert(child != null),
-        assert(actions != null),
-        super(key: key, child: child);
+        assert(actions != null);
 
   final ActionDispatcher? dispatcher;
   final Map<Type, Action<Intent>> actions;
@@ -1400,7 +1035,7 @@ class _ActionsMarker extends InheritedWidget {
 /// widget, and the new control should be enabled for keyboard traversal and
 /// activation.
 ///
-/// {@tool dartpad --template=stateful_widget_material}
+/// {@tool dartpad}
 /// This example shows how keyboard interaction can be added to a custom control
 /// that changes color when hovered and focused, and can toggle a light when
 /// activated, either by touch or by hitting the `X` key on the keyboard when
@@ -1412,128 +1047,7 @@ class _ActionsMarker extends InheritedWidget {
 /// bindings created by [WidgetsApp] (the parent for [MaterialApp], and
 /// [CupertinoApp]), so the `ENTER` key will also activate the buttons.
 ///
-/// ```dart imports
-/// import 'package:flutter/services.dart';
-/// ```
-///
-/// ```dart preamble
-/// class FadButton extends StatefulWidget {
-///   const FadButton({
-///     Key? key,
-///     required this.onPressed,
-///     required this.child,
-///   }) : super(key: key);
-///
-///   final VoidCallback onPressed;
-///   final Widget child;
-///
-///   @override
-///   State<FadButton> createState() => _FadButtonState();
-/// }
-///
-/// class _FadButtonState extends State<FadButton> {
-///   bool _focused = false;
-///   bool _hovering = false;
-///   bool _on = false;
-///   late final Map<Type, Action<Intent>> _actionMap;
-///   final Map<ShortcutActivator, Intent> _shortcutMap = const <ShortcutActivator, Intent>{
-///     SingleActivator(LogicalKeyboardKey.keyX): ActivateIntent(),
-///   };
-///
-///   @override
-///   void initState() {
-///     super.initState();
-///     _actionMap = <Type, Action<Intent>>{
-///       ActivateIntent: CallbackAction<Intent>(
-///         onInvoke: (Intent intent) => _toggleState(),
-///       ),
-///     };
-///   }
-///
-///   Color get color {
-///     Color baseColor = Colors.lightBlue;
-///     if (_focused) {
-///       baseColor = Color.alphaBlend(Colors.black.withOpacity(0.25), baseColor);
-///     }
-///     if (_hovering) {
-///       baseColor = Color.alphaBlend(Colors.black.withOpacity(0.1), baseColor);
-///     }
-///     return baseColor;
-///   }
-///
-///   void _toggleState() {
-///     setState(() {
-///       _on = !_on;
-///     });
-///   }
-///
-///   void _handleFocusHighlight(bool value) {
-///     setState(() {
-///       _focused = value;
-///     });
-///   }
-///
-///   void _handleHoveHighlight(bool value) {
-///     setState(() {
-///       _hovering = value;
-///     });
-///   }
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     return GestureDetector(
-///       onTap: _toggleState,
-///       child: FocusableActionDetector(
-///         actions: _actionMap,
-///         shortcuts: _shortcutMap,
-///         onShowFocusHighlight: _handleFocusHighlight,
-///         onShowHoverHighlight: _handleHoveHighlight,
-///         child: Row(
-///           children: <Widget>[
-///             Container(
-///               padding: const EdgeInsets.all(10.0),
-///               color: color,
-///               child: widget.child,
-///             ),
-///             Container(
-///               width: 30,
-///               height: 30,
-///               margin: const EdgeInsets.all(10.0),
-///               color: _on ? Colors.red : Colors.transparent,
-///             ),
-///           ],
-///         ),
-///       ),
-///     );
-///   }
-/// }
-/// ```
-///
-/// ```dart
-/// @override
-/// Widget build(BuildContext context) {
-///   return Scaffold(
-///     appBar: AppBar(
-///       title: const Text('FocusableActionDetector Example'),
-///     ),
-///     body: Center(
-///       child: Row(
-///         mainAxisAlignment: MainAxisAlignment.center,
-///         children: <Widget>[
-///           Padding(
-///             padding: const EdgeInsets.all(8.0),
-///             child: TextButton(onPressed: () {}, child: const Text('Press Me')),
-///           ),
-///           Padding(
-///             padding: const EdgeInsets.all(8.0),
-///             child: FadButton(onPressed: () {}, child: const Text('And Me')),
-///           ),
-///         ],
-///       ),
-///     ),
-///   );
-/// }
-/// ```
+/// ** See code in examples/api/lib/widgets/actions/focusable_action_detector.0.dart **
 /// {@end-tool}
 ///
 /// This widget doesn't have any visual representation, it is just a detector that
@@ -1545,11 +1059,12 @@ class FocusableActionDetector extends StatefulWidget {
   ///
   /// The [enabled], [autofocus], [mouseCursor], and [child] arguments must not be null.
   const FocusableActionDetector({
-    Key? key,
+    super.key,
     this.enabled = true,
     this.focusNode,
     this.autofocus = false,
     this.descendantsAreFocusable = true,
+    this.descendantsAreTraversable = true,
     this.shortcuts,
     this.actions,
     this.onShowFocusHighlight,
@@ -1560,8 +1075,7 @@ class FocusableActionDetector extends StatefulWidget {
   })  : assert(enabled != null),
         assert(autofocus != null),
         assert(mouseCursor != null),
-        assert(child != null),
-        super(key: key);
+        assert(child != null);
 
   /// Is this widget enabled or not.
   ///
@@ -1580,6 +1094,9 @@ class FocusableActionDetector extends StatefulWidget {
 
   /// {@macro flutter.widgets.Focus.descendantsAreFocusable}
   final bool descendantsAreFocusable;
+
+  /// {@macro flutter.widgets.Focus.descendantsAreTraversable}
+  final bool descendantsAreTraversable;
 
   /// {@macro flutter.widgets.actions.actions}
   final Map<Type, Action<Intent>>? actions;
@@ -1623,7 +1140,7 @@ class _FocusableActionDetectorState extends State<FocusableActionDetector> {
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance!.addPostFrameCallback((Duration duration) {
+    SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
       _updateHighlightMode(FocusManager.instance.highlightMode);
     });
     FocusManager.instance.addHighlightModeListener(_handleFocusHighlightModeChange);
@@ -1712,7 +1229,7 @@ class _FocusableActionDetectorState extends State<FocusableActionDetector> {
       return _focused && _canShowHighlight && canRequestFocus(target);
     }
 
-    assert(SchedulerBinding.instance!.schedulerPhase != SchedulerPhase.persistentCallbacks);
+    assert(SchedulerBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks);
     final FocusableActionDetector oldTarget = oldWidget ?? widget;
     final bool didShowHoverHighlight = shouldShowHoverHighlight(oldTarget);
     final bool didShowFocusHighlight = shouldShowFocusHighlight(oldTarget);
@@ -1733,7 +1250,7 @@ class _FocusableActionDetectorState extends State<FocusableActionDetector> {
   void didUpdateWidget(FocusableActionDetector oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.enabled != oldWidget.enabled) {
-      SchedulerBinding.instance!.addPostFrameCallback((Duration duration) {
+      SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
         _mayTriggerCallback(oldWidget: oldWidget);
       });
     }
@@ -1767,6 +1284,7 @@ class _FocusableActionDetectorState extends State<FocusableActionDetector> {
         focusNode: widget.focusNode,
         autofocus: widget.autofocus,
         descendantsAreFocusable: widget.descendantsAreFocusable,
+        descendantsAreTraversable: widget.descendantsAreTraversable,
         canRequestFocus: _canRequestFocus,
         onFocusChange: _handleFocusChange,
         child: widget.child,
@@ -1782,7 +1300,34 @@ class _FocusableActionDetectorState extends State<FocusableActionDetector> {
   }
 }
 
-/// An [Intent], that is bound to a [DoNothingAction].
+/// An [Intent] that keeps a [VoidCallback] to be invoked by a
+/// [VoidCallbackAction] when it receives this intent.
+class VoidCallbackIntent extends Intent {
+  /// Creates a [VoidCallbackIntent].
+  const VoidCallbackIntent(this.callback);
+
+  /// The callback that is to be called by the [VoidCallbackAction] that
+  /// receives this intent.
+  final VoidCallback callback;
+}
+
+/// An [Action] that invokes the [VoidCallback] given to it in the
+/// [VoidCallbackIntent] passed to it when invoked.
+///
+/// See also:
+///
+///  * [CallbackAction], which is an action that will invoke a callback with the
+///    intent passed to the action's invoke method. The callback is configured
+///    on the action, not the intent, like this class.
+class VoidCallbackAction extends Action<VoidCallbackIntent> {
+  @override
+  Object? invoke(VoidCallbackIntent intent) {
+    intent.callback();
+    return null;
+  }
+}
+
+/// An [Intent] that is bound to a [DoNothingAction].
 ///
 /// Attaching a [DoNothingIntent] to a [Shortcuts] mapping is one way to disable
 /// a keyboard shortcut defined by a widget higher in the widget hierarchy and
@@ -1803,7 +1348,7 @@ class DoNothingIntent extends Intent {
   const DoNothingIntent._();
 }
 
-/// An [Intent], that is bound to a [DoNothingAction], but, in addition to not
+/// An [Intent] that is bound to a [DoNothingAction], but, in addition to not
 /// performing an action, also stops the propagation of the key event bound to
 /// this intent to other key event handlers in the focus chain.
 ///
@@ -1828,7 +1373,7 @@ class DoNothingAndStopPropagationIntent extends Intent {
   const DoNothingAndStopPropagationIntent._();
 }
 
-/// An [Action], that doesn't perform any action when invoked.
+/// An [Action] that doesn't perform any action when invoked.
 ///
 /// Attaching a [DoNothingAction] to an [Actions.actions] mapping is a way to
 /// disable an action defined by a widget higher in the widget hierarchy.
@@ -1897,7 +1442,7 @@ class ButtonActivateIntent extends Intent {
   const ButtonActivateIntent();
 }
 
-/// An action that activates the currently focused control.
+/// An [Action] that activates the currently focused control.
 ///
 /// This is an abstract class that serves as a base class for actions that
 /// activate a control. By default, is bound to [LogicalKeyboardKey.enter],
@@ -1905,8 +1450,11 @@ class ButtonActivateIntent extends Intent {
 /// default keyboard map in [WidgetsApp].
 abstract class ActivateAction extends Action<ActivateIntent> { }
 
-/// An intent that selects the currently focused control.
-class SelectIntent extends Intent { }
+/// An [Intent] that selects the currently focused control.
+class SelectIntent extends Intent {
+  /// Creates an intent that selects the currently focused control.
+  const SelectIntent();
+}
 
 /// An action that selects the currently focused control.
 ///
@@ -1927,7 +1475,7 @@ class DismissIntent extends Intent {
   const DismissIntent();
 }
 
-/// An action that dismisses the focused widget.
+/// An [Action] that dismisses the focused widget.
 ///
 /// This is an abstract class that serves as a base class for dismiss actions.
 abstract class DismissAction extends Action<DismissIntent> { }
@@ -1958,8 +1506,9 @@ class PrioritizedAction extends Action<PrioritizedIntents> {
   @override
   bool isEnabled(PrioritizedIntents intent) {
     final FocusNode? focus = primaryFocus;
-    if  (focus == null || focus.context == null)
+    if  (focus == null || focus.context == null) {
       return false;
+    }
     for (final Intent candidateIntent in intent.orderedIntents) {
       final Action<Intent>? candidateAction = Actions.maybeFind<Intent>(
         focus.context!,
@@ -1975,7 +1524,7 @@ class PrioritizedAction extends Action<PrioritizedIntents> {
   }
 
   @override
-  Object? invoke(PrioritizedIntents intent) {
+  void invoke(PrioritizedIntents intent) {
     assert(_selectedAction != null);
     assert(_selectedIntent != null);
     _selectedAction.invoke(_selectedIntent);
@@ -2010,9 +1559,9 @@ mixin _OverridableActionMixin<T extends Intent> on Action<T> {
   }
 
   @override
-  set _callingAction(Action<T>? newAction) {
-    super._callingAction = newAction;
-    defaultAction._callingAction = newAction;
+  void _updateCallingAction(Action<T>? value) {
+    super._updateCallingAction(value);
+    defaultAction._updateCallingAction(value);
   }
 
   Object? _invokeOverride(Action<T> overrideAction, T intent, BuildContext? context) {
@@ -2021,11 +1570,11 @@ mixin _OverridableActionMixin<T extends Intent> on Action<T> {
       debugAssertMutuallyRecursive = true;
       return true;
     }());
-    overrideAction._callingAction = defaultAction;
+    overrideAction._updateCallingAction(defaultAction);
     final Object? returnValue = overrideAction is ContextAction<T>
       ? overrideAction.invoke(intent, context)
       : overrideAction.invoke(intent);
-    overrideAction._callingAction = null;
+    overrideAction._updateCallingAction(null);
     assert(() {
       debugAssertMutuallyRecursive = false;
       return true;
@@ -2048,9 +1597,9 @@ mixin _OverridableActionMixin<T extends Intent> on Action<T> {
       debugAssertIsActionEnabledMutuallyRecursive = true;
       return true;
     }());
-    overrideAction._callingAction = defaultAction;
+    overrideAction._updateCallingAction(defaultAction);
     final bool isOverrideEnabled = overrideAction.isActionEnabled;
-    overrideAction._callingAction = null;
+    overrideAction._updateCallingAction(null);
     assert(() {
       debugAssertIsActionEnabledMutuallyRecursive = false;
       return true;
@@ -2076,9 +1625,9 @@ mixin _OverridableActionMixin<T extends Intent> on Action<T> {
     }());
 
     final Action<T>? overrideAction = getOverrideAction();
-    overrideAction?._callingAction = defaultAction;
+    overrideAction?._updateCallingAction(defaultAction);
     final bool returnValue = (overrideAction ?? defaultAction).isEnabled(intent);
-    overrideAction?._callingAction = null;
+    overrideAction?._updateCallingAction(null);
     assert(() {
       debugAssertIsEnabledMutuallyRecursive = false;
       return true;
@@ -2094,9 +1643,9 @@ mixin _OverridableActionMixin<T extends Intent> on Action<T> {
       return true;
     }());
     final Action<T>? overrideAction = getOverrideAction();
-    overrideAction?._callingAction = defaultAction;
+    overrideAction?._updateCallingAction(defaultAction);
     final bool isEnabled = (overrideAction ?? defaultAction).consumesKey(intent);
-    overrideAction?._callingAction = null;
+    overrideAction?._updateCallingAction(null);
     assert(() {
       debugAssertConsumeKeyMutuallyRecursive = false;
       return true;
@@ -2158,11 +1707,11 @@ class _OverridableContextAction<T extends Intent> extends ContextAction<T> with 
     // overrideAction is not a ContextAction and thus have no access to the
     // calling BuildContext.
     final Action<T> wrappedDefault = _ContextActionToActionAdapter<T>(invokeContext: context!, action: defaultAction);
-    overrideAction._callingAction = wrappedDefault;
+    overrideAction._updateCallingAction(wrappedDefault);
     final Object? returnValue = overrideAction is ContextAction<T>
       ? overrideAction.invoke(intent, context)
       : overrideAction.invoke(intent);
-    overrideAction._callingAction = null;
+    overrideAction._updateCallingAction(null);
 
     assert(() {
       debugAssertMutuallyRecursive = false;
@@ -2194,8 +1743,8 @@ class _ContextActionToActionAdapter<T extends Intent> extends Action<T> {
   final ContextAction<T> action;
 
   @override
-  set _callingAction(Action<T>? newAction) {
-    action._callingAction = newAction;
+  void _updateCallingAction(Action<T>? value) {
+    action._updateCallingAction(value);
   }
 
   @override

@@ -9,83 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-typedef PostInvokeCallback = void Function({Action<Intent> action, Intent intent, ActionDispatcher dispatcher});
-
-class TestIntent extends Intent {
-  const TestIntent();
-}
-
-class SecondTestIntent extends TestIntent {
-  const SecondTestIntent();
-}
-
-class ThirdTestIntent extends SecondTestIntent {
-  const ThirdTestIntent();
-}
-
-class TestAction extends CallbackAction<TestIntent> {
-  TestAction({
-    required OnInvokeCallback onInvoke,
-  })  : assert(onInvoke != null),
-        super(onInvoke: onInvoke);
-
-  @override
-  bool isEnabled(TestIntent intent) => enabled;
-
-  bool get enabled => _enabled;
-  bool _enabled = true;
-  set enabled(bool value) {
-    if (_enabled == value) {
-      return;
-    }
-    _enabled = value;
-    notifyActionListeners();
-  }
-
-  @override
-  void addActionListener(ActionListenerCallback listener) {
-    super.addActionListener(listener);
-    listeners.add(listener);
-  }
-
-  @override
-  void removeActionListener(ActionListenerCallback listener) {
-    super.removeActionListener(listener);
-    listeners.remove(listener);
-  }
-  List<ActionListenerCallback> listeners = <ActionListenerCallback>[];
-
-  void _testInvoke(TestIntent intent) => invoke(intent);
-}
-
-class TestDispatcher extends ActionDispatcher {
-  const TestDispatcher({this.postInvoke});
-
-  final PostInvokeCallback? postInvoke;
-
-  @override
-  Object? invokeAction(Action<Intent> action, Intent intent, [BuildContext? context]) {
-    final Object? result = super.invokeAction(action, intent, context);
-    postInvoke?.call(action: action, intent: intent, dispatcher: this);
-    return result;
-  }
-}
-
-class TestDispatcher1 extends TestDispatcher {
-  const TestDispatcher1({PostInvokeCallback? postInvoke}) : super(postInvoke: postInvoke);
-}
-
 void main() {
-  testWidgets('CallbackAction passes correct intent when invoked.', (WidgetTester tester) async {
-    late Intent passedIntent;
-    final TestAction action = TestAction(onInvoke: (Intent intent) {
-      passedIntent = intent;
-      return true;
-    });
-    const TestIntent intent = TestIntent();
-    action._testInvoke(intent);
-    expect(passedIntent, equals(intent));
-  });
   group(ActionDispatcher, () {
     testWidgets('ActionDispatcher invokes actions when asked.', (WidgetTester tester) async {
       await tester.pumpWidget(Container());
@@ -434,7 +358,6 @@ void main() {
       focusNode.requestFocus();
       await tester.pump();
       final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      addTearDown(gesture.removePointer);
       await gesture.moveTo(tester.getCenter(find.byKey(containerKey)));
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -474,10 +397,9 @@ void main() {
       );
       final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 1);
       await gesture.addPointer(location: const Offset(1, 1));
-      addTearDown(gesture.removePointer);
       await tester.pump();
 
-      expect(RendererBinding.instance!.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.text);
+      expect(RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.text);
 
       // Test default
       await tester.pumpWidget(
@@ -491,7 +413,7 @@ void main() {
         ),
       );
 
-      expect(RendererBinding.instance!.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.forbidden);
+      expect(RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.forbidden);
     });
     testWidgets('Actions.invoke returns the value of Action.invoke', (WidgetTester tester) async {
       final GlobalKey containerKey = GlobalKey();
@@ -824,11 +746,10 @@ void main() {
       FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
       final GlobalKey containerKey = GlobalKey();
 
-      await pumpTest(tester, enabled: true, key: containerKey);
+      await pumpTest(tester, key: containerKey);
       focusNode.requestFocus();
       await tester.pump();
       final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      addTearDown(gesture.removePointer);
       await gesture.moveTo(tester.getCenter(find.byKey(containerKey)));
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -843,14 +764,14 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
       expect(invoked, isFalse);
-      await pumpTest(tester, enabled: true, key: containerKey);
+      await pumpTest(tester, key: containerKey);
       expect(focusing, isFalse);
       expect(hovering, isTrue);
       await pumpTest(tester, enabled: false, key: containerKey);
       expect(focusing, isFalse);
       expect(hovering, isFalse);
       await gesture.moveTo(Offset.zero);
-      await pumpTest(tester, enabled: true, key: containerKey);
+      await pumpTest(tester, key: containerKey);
       expect(hovering, isFalse);
       expect(focusing, isFalse);
     });
@@ -858,11 +779,11 @@ void main() {
       FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
       final GlobalKey containerKey = GlobalKey();
 
-      await pumpTest(tester, enabled: true, key: containerKey);
+      await pumpTest(tester, key: containerKey);
       await tester.pump();
       expect(focusing, isFalse);
 
-      await pumpTest(tester, enabled: true, key: containerKey);
+      await pumpTest(tester, key: containerKey);
       focusNode.requestFocus();
       await tester.pump();
       expect(focusing, isTrue);
@@ -888,11 +809,10 @@ void main() {
       FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
       final GlobalKey containerKey = GlobalKey();
 
-      await pumpTest(tester, enabled: true, key: containerKey, supplyCallbacks: false);
+      await pumpTest(tester, key: containerKey, supplyCallbacks: false);
       focusNode.requestFocus();
       await tester.pump();
       final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      addTearDown(gesture.removePointer);
       await gesture.moveTo(tester.getCenter(find.byKey(containerKey)));
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -907,14 +827,14 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
       expect(invoked, isFalse);
-      await pumpTest(tester, enabled: true, key: containerKey, supplyCallbacks: false);
+      await pumpTest(tester, key: containerKey, supplyCallbacks: false);
       expect(focusing, isFalse);
       expect(hovering, isFalse);
       await pumpTest(tester, enabled: false, key: containerKey, supplyCallbacks: false);
       expect(focusing, isFalse);
       expect(hovering, isFalse);
       await gesture.moveTo(Offset.zero);
-      await pumpTest(tester, enabled: true, key: containerKey, supplyCallbacks: false);
+      await pumpTest(tester, key: containerKey, supplyCallbacks: false);
       expect(hovering, isFalse);
       expect(focusing, isFalse);
     });
@@ -927,7 +847,6 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: FocusableActionDetector(
-              descendantsAreFocusable: true,
               child: MaterialButton(
                 focusNode: buttonNode,
                 child: const Text('Test'),
@@ -963,6 +882,98 @@ void main() {
         expect(buttonNode.hasFocus, isFalse);
       },
     );
+
+    testWidgets(
+      'FocusableActionDetector can prevent its descendants from being traversable',
+          (WidgetTester tester) async {
+        final FocusNode buttonNode1 = FocusNode(debugLabel: 'Button Node 1');
+        final FocusNode buttonNode2 = FocusNode(debugLabel: 'Button Node 2');
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: FocusableActionDetector(
+              child: Column(
+                children: <Widget>[
+                  MaterialButton(
+                    focusNode: buttonNode1,
+                    child: const Text('Node 1'),
+                    onPressed: () {},
+                  ),
+                  MaterialButton(
+                    focusNode: buttonNode2,
+                    child: const Text('Node 2'),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        buttonNode1.requestFocus();
+        await tester.pump();
+        expect(buttonNode1.hasFocus, isTrue);
+        expect(buttonNode2.hasFocus, isFalse);
+        primaryFocus!.nextFocus();
+        await tester.pump();
+        expect(buttonNode1.hasFocus, isFalse);
+        expect(buttonNode2.hasFocus, isTrue);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: FocusableActionDetector(
+              descendantsAreTraversable: false,
+              child: Column(
+                children: <Widget>[
+                  MaterialButton(
+                    focusNode: buttonNode1,
+                    child: const Text('Node 1'),
+                    onPressed: () {},
+                  ),
+                  MaterialButton(
+                    focusNode: buttonNode2,
+                    child: const Text('Node 2'),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        buttonNode1.requestFocus();
+        await tester.pump();
+        expect(buttonNode1.hasFocus, isTrue);
+        expect(buttonNode2.hasFocus, isFalse);
+        primaryFocus!.nextFocus();
+        await tester.pump();
+        expect(buttonNode1.hasFocus, isTrue);
+        expect(buttonNode2.hasFocus, isFalse);
+      },
+    );
+  });
+
+  group('Action subclasses', () {
+    testWidgets('CallbackAction passes correct intent when invoked.', (WidgetTester tester) async {
+      late Intent passedIntent;
+      final TestAction action = TestAction(onInvoke: (Intent intent) {
+        passedIntent = intent;
+        return true;
+      });
+      const TestIntent intent = TestIntent();
+      action._testInvoke(intent);
+      expect(passedIntent, equals(intent));
+    });
+    testWidgets('VoidCallbackAction', (WidgetTester tester) async {
+      bool called = false;
+      void testCallback() {
+        called = true;
+      }
+      final VoidCallbackAction action = VoidCallbackAction();
+      final VoidCallbackIntent intent = VoidCallbackIntent(testCallback);
+      action.invoke(intent);
+      expect(called, isTrue);
+    });
   });
 
   group('Diagnostics', () {
@@ -1345,7 +1356,7 @@ void main() {
           builder: (BuildContext context1) {
             return Actions(
               actions: <Type, Action<Intent>> {
-                LogIntent: Action<LogIntent>.overridable(defaultAction: LogInvocationAction(actionName: 'action1', enabled: true), context: context1),
+                LogIntent: Action<LogIntent>.overridable(defaultAction: LogInvocationAction(actionName: 'action1'), context: context1),
               },
               child: Builder(
                 builder: (BuildContext context2) {
@@ -1402,7 +1413,7 @@ void main() {
                   setState = stateSetter;
                   return Actions(
                     actions: <Type, Action<Intent>> {
-                      if (action2LookupContext != null) LogIntent: Action<LogIntent>.overridable(defaultAction: LogInvocationAction(actionName: 'action2'), context: action2LookupContext!)
+                      if (action2LookupContext != null) LogIntent: Action<LogIntent>.overridable(defaultAction: LogInvocationAction(actionName: 'action2'), context: action2LookupContext!),
                     },
                     child: Builder(
                       builder: (BuildContext context3) {
@@ -1511,7 +1522,7 @@ void main() {
                                 context: context2,
                               ),
                               context: context3,
-                            )
+                            ),
                           },
                           child: Builder(
                             builder: (BuildContext context4) {
@@ -1698,13 +1709,78 @@ void main() {
   });
 }
 
+typedef PostInvokeCallback = void Function({Action<Intent> action, Intent intent, ActionDispatcher dispatcher});
+
+class TestIntent extends Intent {
+  const TestIntent();
+}
+
+class SecondTestIntent extends TestIntent {
+  const SecondTestIntent();
+}
+
+class ThirdTestIntent extends SecondTestIntent {
+  const ThirdTestIntent();
+}
+
+class TestAction extends CallbackAction<TestIntent> {
+  TestAction({
+    required OnInvokeCallback onInvoke,
+  })  : assert(onInvoke != null),
+        super(onInvoke: onInvoke);
+
+  @override
+  bool isEnabled(TestIntent intent) => enabled;
+
+  bool get enabled => _enabled;
+  bool _enabled = true;
+  set enabled(bool value) {
+    if (_enabled == value) {
+      return;
+    }
+    _enabled = value;
+    notifyActionListeners();
+  }
+
+  @override
+  void addActionListener(ActionListenerCallback listener) {
+    super.addActionListener(listener);
+    listeners.add(listener);
+  }
+
+  @override
+  void removeActionListener(ActionListenerCallback listener) {
+    super.removeActionListener(listener);
+    listeners.remove(listener);
+  }
+  List<ActionListenerCallback> listeners = <ActionListenerCallback>[];
+
+  void _testInvoke(TestIntent intent) => invoke(intent);
+}
+
+class TestDispatcher extends ActionDispatcher {
+  const TestDispatcher({this.postInvoke});
+
+  final PostInvokeCallback? postInvoke;
+
+  @override
+  Object? invokeAction(Action<Intent> action, Intent intent, [BuildContext? context]) {
+    final Object? result = super.invokeAction(action, intent, context);
+    postInvoke?.call(action: action, intent: intent, dispatcher: this);
+    return result;
+  }
+}
+
+class TestDispatcher1 extends TestDispatcher {
+  const TestDispatcher1({super.postInvoke});
+}
+
 class TestContextAction extends ContextAction<TestIntent> {
   List<BuildContext?> capturedContexts = <BuildContext?>[];
 
   @override
-  Object? invoke(covariant TestIntent intent, [BuildContext? context]) {
+  void invoke(covariant TestIntent intent, [BuildContext? context]) {
     capturedContexts.add(context);
-    return null;
   }
 }
 
@@ -1725,7 +1801,7 @@ class LogInvocationAction extends Action<LogIntent> {
   bool get isActionEnabled => enabled;
 
   @override
-  Object? invoke(LogIntent intent) {
+  void invoke(LogIntent intent) {
     final Action<LogIntent>? callingAction = this.callingAction;
     if (callingAction == null) {
       intent.log.add('$actionName.invoke');
@@ -1756,7 +1832,7 @@ class LogInvocationContextAction extends ContextAction<LogIntent> {
   bool get isActionEnabled => enabled;
 
   @override
-  Object? invoke(LogIntent intent, [BuildContext? context]) {
+  void invoke(LogIntent intent, [BuildContext? context]) {
     invokeContext = context;
     final Action<LogIntent>? callingAction = this.callingAction;
     if (callingAction == null) {
@@ -1776,7 +1852,7 @@ class LogInvocationContextAction extends ContextAction<LogIntent> {
 }
 
 class LogInvocationButDeferIsEnabledAction extends LogInvocationAction {
-  LogInvocationButDeferIsEnabledAction({ required String actionName }) : super(actionName: actionName);
+  LogInvocationButDeferIsEnabledAction({ required super.actionName });
 
   // Defer `isActionEnabled` to the overridable action.
   @override
@@ -1785,13 +1861,13 @@ class LogInvocationButDeferIsEnabledAction extends LogInvocationAction {
 
 class RedirectOutputAction extends LogInvocationAction {
   RedirectOutputAction({
-      required String actionName,
-      bool enabled = true,
+      required super.actionName,
+      super.enabled,
       required this.newLog,
-  }) : super(actionName: actionName, enabled: enabled);
+  });
 
   final List<String> newLog;
 
   @override
-  Object? invoke(LogIntent intent) => super.invoke(LogIntent(log: newLog));
+  void invoke(LogIntent intent) => super.invoke(LogIntent(log: newLog));
 }

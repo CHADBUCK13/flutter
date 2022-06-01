@@ -15,7 +15,7 @@ import '../build_info.dart';
 import '../bundle_builder.dart';
 import '../devfs.dart';
 import '../device.dart';
-import '../globals_null_migrated.dart' as globals;
+import '../globals.dart' as globals;
 import '../project.dart';
 import '../runner/flutter_command.dart';
 import '../test/coverage_collector.dart';
@@ -73,6 +73,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
     usesDartDefineOption();
     usesWebRendererOption();
     usesDeviceUserOption();
+    usesFlavorOption();
 
     argParser
       ..addMultiOption('name',
@@ -140,7 +141,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
       )
       ..addFlag('update-goldens',
         negatable: false,
-        help: 'Whether "matchesGoldenFile()" calls within your test methods should '
+        help: 'Whether "matchesGoldenFile()" calls within your test methods should ' // flutter_ignore: golden_tag (see analyze.dart)
               'update the golden files rather than test for an existing match.',
       )
       ..addOption('concurrency',
@@ -216,7 +217,8 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
               'or as the string "none" to disable the timeout entirely.',
         defaultsTo: '30s',
       );
-      addDdsOptions(verboseHelp: verboseHelp);
+    addDdsOptions(verboseHelp: verboseHelp);
+    usesFatalWarningsOption(verboseHelp: verboseHelp);
   }
 
   /// The interface for starting and configuring the tester.
@@ -237,7 +239,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
         // Use [DeviceBasedDevelopmentArtifacts].
         ? await super.requiredArtifacts
         : <DevelopmentArtifact>{};
-    if (stringArg('platform') == 'chrome') {
+    if (stringArgDeprecated('platform') == 'chrome') {
       results.add(DevelopmentArtifact.web);
     }
     return results;
@@ -248,6 +250,9 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
 
   @override
   String get description => 'Run Flutter unit tests for the current project.';
+
+  @override
+  String get category => FlutterCommandCategory.project;
 
   @override
   Future<FlutterCommandResult> verifyThenRunCommand(String commandPath) {
@@ -272,7 +277,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
           if (globals.fs.isDirectorySync(path))
             ..._findTests(globals.fs.directory(path))
           else
-            globals.fs.path.normalize(globals.fs.path.absolute(path))
+            globals.fs.path.normalize(globals.fs.path.absolute(path)),
       ];
     }
 
@@ -280,7 +285,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
     // correct [requiredArtifacts] can be identified before [run] takes place.
     _isIntegrationTest = _shouldRunAsIntegrationTests(globals.fs.currentDirectory.absolute.path, _testFiles);
 
-    globals.logger.printTrace(
+    globals.printTrace(
       'Found ${_testFiles.length} files which will be executed as '
       '${_isIntegrationTest ? 'Integration' : 'Widget'} Tests.',
     );
@@ -297,11 +302,11 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
         'directory (or one of its subdirectories).');
     }
     final FlutterProject flutterProject = FlutterProject.current();
-    final bool buildTestAssets = boolArg('test-assets');
+    final bool buildTestAssets = boolArgDeprecated('test-assets');
     final List<String> names = stringsArg('name');
     final List<String> plainNames = stringsArg('plain-name');
-    final String tags = stringArg('tags');
-    final String excludeTags = stringArg('exclude-tags');
+    final String tags = stringArgDeprecated('tags');
+    final String excludeTags = stringArgDeprecated('exclude-tags');
     final BuildInfo buildInfo = await getBuildInfo(forcedBuildMode: BuildMode.debug);
 
     if (buildInfo.packageConfig['test_api'] == null) {
@@ -315,11 +320,14 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
       );
     }
 
+    String testAssetDirectory;
     if (buildTestAssets) {
       await _buildTestAsset();
+      testAssetDirectory = globals.fs.path.
+        join(flutterProject?.directory?.path ?? '', 'build', 'unit_test_assets');
     }
 
-    final bool startPaused = boolArg('start-paused');
+    final bool startPaused = boolArgDeprecated('start-paused');
     if (startPaused && _testFiles.length != 1) {
       throwToolExit(
         'When using --start-paused, you must specify a single test file to run.',
@@ -327,7 +335,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
       );
     }
 
-    int jobs = int.tryParse(stringArg('concurrency'));
+    int jobs = int.tryParse(stringArgDeprecated('concurrency'));
     if (jobs == null || jobs <= 0 || !jobs.isFinite) {
       throwToolExit(
         'Could not parse -j/--concurrency argument. It must be an integer greater than zero.'
@@ -335,7 +343,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
     }
     if (_isIntegrationTest) {
       if (argResults.wasParsed('concurrency')) {
-        globals.logger.printStatus(
+        globals.printStatus(
           '-j/--concurrency was parsed but will be ignored, this option is not '
           'supported when running Integration Tests.',
         );
@@ -345,13 +353,13 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
       jobs = 1;
     }
 
-    final int shardIndex = int.tryParse(stringArg('shard-index') ?? '');
+    final int shardIndex = int.tryParse(stringArgDeprecated('shard-index') ?? '');
     if (shardIndex != null && (shardIndex < 0 || !shardIndex.isFinite)) {
       throwToolExit(
           'Could not parse --shard-index=$shardIndex argument. It must be an integer greater than -1.');
     }
 
-    final int totalShards = int.tryParse(stringArg('total-shards') ?? '');
+    final int totalShards = int.tryParse(stringArgDeprecated('total-shards') ?? '');
     if (totalShards != null && (totalShards <= 0 || !totalShards.isFinite)) {
       throwToolExit(
           'Could not parse --total-shards=$totalShards argument. It must be an integer greater than zero.');
@@ -366,16 +374,14 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
           'If you set --shard-index you need to also set --total-shards.');
     }
 
-    final bool machine = boolArg('machine');
+    final bool machine = boolArgDeprecated('machine');
     CoverageCollector collector;
-    if (boolArg('coverage') || boolArg('merge-coverage')) {
+    if (boolArgDeprecated('coverage') || boolArgDeprecated('merge-coverage')) {
       final String projectName = flutterProject.manifest.appName;
       collector = CoverageCollector(
         verbose: !machine,
-        libraryPredicate: (String libraryName) => libraryName.contains(projectName),
-        // TODO(jonahwilliams): file bug for incorrect URI handling on windows
-        packagesPath: globals.fs.file(buildInfo.packagesPath)
-          .parent.parent.childFile('.packages').path
+        libraryNames: <String>{projectName},
+        packagesPath: buildInfo.packagesPath
       );
     }
 
@@ -389,11 +395,11 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
     final DebuggingOptions debuggingOptions = DebuggingOptions.enabled(
       buildInfo,
       startPaused: startPaused,
-      disableServiceAuthCodes: boolArg('disable-service-auth-codes'),
+      disableServiceAuthCodes: boolArgDeprecated('disable-service-auth-codes'),
       // On iOS >=14, keeping this enabled will leave a prompt on the screen.
       disablePortPublication: true,
       enableDds: enableDds,
-      nullAssertions: boolArg(FlutterOptions.kNullAssertions),
+      nullAssertions: boolArgDeprecated(FlutterOptions.kNullAssertions),
     );
 
     Device integrationTestDevice;
@@ -411,7 +417,7 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
         );
       }
       if (integrationTestDevice.platformType == PlatformType.web) {
-        // TODO(jiahaog): Support web. https://github.com/flutter/flutter/pull/74236
+        // TODO(jiahaog): Support web. https://github.com/flutter/flutter/issues/66264
         throwToolExit('Web devices are not supported for integration tests yet.');
       }
 
@@ -436,28 +442,28 @@ class TestCommand extends FlutterCommand with DeviceBasedDevelopmentArtifacts {
       tags: tags,
       excludeTags: excludeTags,
       watcher: watcher,
-      enableObservatory: collector != null || startPaused || boolArg('enable-vmservice'),
-      ipv6: boolArg('ipv6'),
+      enableObservatory: collector != null || startPaused || boolArgDeprecated('enable-vmservice'),
+      ipv6: boolArgDeprecated('ipv6'),
       machine: machine,
-      updateGoldens: boolArg('update-goldens'),
+      updateGoldens: boolArgDeprecated('update-goldens'),
       concurrency: jobs,
-      buildTestAssets: buildTestAssets,
+      testAssetDirectory: testAssetDirectory,
       flutterProject: flutterProject,
-      web: stringArg('platform') == 'chrome',
-      randomSeed: stringArg('test-randomize-ordering-seed'),
-      reporter: stringArg('reporter'),
-      timeout: stringArg('timeout'),
-      runSkipped: boolArg('run-skipped'),
+      web: stringArgDeprecated('platform') == 'chrome',
+      randomSeed: stringArgDeprecated('test-randomize-ordering-seed'),
+      reporter: stringArgDeprecated('reporter'),
+      timeout: stringArgDeprecated('timeout'),
+      runSkipped: boolArgDeprecated('run-skipped'),
       shardIndex: shardIndex,
       totalShards: totalShards,
       integrationTestDevice: integrationTestDevice,
-      integrationTestUserIdentifier: stringArg(FlutterOptions.kDeviceUser),
+      integrationTestUserIdentifier: stringArgDeprecated(FlutterOptions.kDeviceUser),
     );
 
     if (collector != null) {
       final bool collectionResult = await collector.collectCoverageData(
-        stringArg('coverage-path'),
-        mergeCoverageData: boolArg('merge-coverage'),
+        stringArgDeprecated('coverage-path'),
+        mergeCoverageData: boolArgDeprecated('merge-coverage'),
       );
       if (!collectionResult) {
         throwToolExit(null);

@@ -52,21 +52,6 @@ final vm_service.Isolate fakeUnpausedIsolate = vm_service.Isolate(
   isolateFlags: <vm_service.IsolateFlag>[],
 );
 
-final vm_service.VM fakeVM = vm_service.VM(
-  isolates: <vm_service.IsolateRef>[fakeUnpausedIsolate],
-  pid: 1,
-  hostCPU: '',
-  isolateGroups: <vm_service.IsolateGroupRef>[],
-  targetCPU: '',
-  startTime: 0,
-  name: 'dart',
-  architectureBits: 64,
-  operatingSystem: '',
-  version: '',
-  systemIsolateGroups: <vm_service.IsolateGroupRef>[],
-  systemIsolates: <vm_service.IsolateRef>[],
-);
-
 final FlutterView fakeFlutterView = FlutterView(
   id: 'a',
   uiIsolate: fakeUnpausedIsolate,
@@ -148,17 +133,17 @@ void main() {
             'isolateId': '1',
           },
           jsonResponse: <String, Object>{
-            'enabled': 'false'
+            'enabled': 'false',
           },
          ),
         const FakeVmServiceRequest(
           method: 'ext.flutter.profileWidgetBuilds',
           args: <String, Object>{
             'isolateId': '1',
-            'enabled': 'true'
+            'enabled': 'true',
           },
           jsonResponse: <String, Object>{
-            'enabled': 'true'
+            'enabled': 'true',
           },
         ),
       ]);
@@ -175,17 +160,17 @@ void main() {
             'isolateId': '1',
           },
           jsonResponse: <String, Object>{
-            'enabled': 'false'
+            'enabled': 'false',
           },
         ),
         const FakeVmServiceRequest(
           method: 'ext.flutter.profileWidgetBuilds',
           args: <String, Object>{
             'isolateId': '1',
-            'enabled': 'true'
+            'enabled': 'true',
           },
           jsonResponse: <String, Object>{
-            'enabled': 'true'
+            'enabled': 'true',
           },
         ),
       ], web: true);
@@ -420,7 +405,7 @@ void main() {
             'isolateId': '1',
           },
           jsonResponse: <String, Object>{
-            'value': 'iOS'
+            'value': 'iOS',
           },
         ),
         listViews,
@@ -431,7 +416,7 @@ void main() {
             'value': 'fuchsia',
           },
           jsonResponse: <String, Object>{
-            'value': 'fuchsia'
+            'value': 'fuchsia',
           },
         ),
         // Request 2.
@@ -442,7 +427,7 @@ void main() {
             'isolateId': '1',
           },
           jsonResponse: <String, Object>{
-            'value': 'android'
+            'value': 'android',
           },
         ),
         listViews,
@@ -453,7 +438,7 @@ void main() {
             'value': 'iOS',
           },
           jsonResponse: <String, Object>{
-            'value': 'iOS'
+            'value': 'iOS',
           },
         ),
       ]);
@@ -474,7 +459,7 @@ void main() {
             'isolateId': '1',
           },
           jsonResponse: <String, Object>{
-            'value': 'iOS'
+            'value': 'iOS',
           },
         ),
         listViews,
@@ -485,7 +470,7 @@ void main() {
             'value': 'fuchsia',
           },
           jsonResponse: <String, Object>{
-            'value': 'fuchsia'
+            'value': 'fuchsia',
           },
         ),
         // Request 2.
@@ -496,7 +481,7 @@ void main() {
             'isolateId': '1',
           },
           jsonResponse: <String, Object>{
-            'value': 'android'
+            'value': 'android',
           },
         ),
         listViews,
@@ -507,7 +492,7 @@ void main() {
             'value': 'iOS',
           },
           jsonResponse: <String, Object>{
-            'value': 'iOS'
+            'value': 'iOS',
           },
         ),
       ], web: true);
@@ -791,9 +776,7 @@ void main() {
     });
 
     testWithoutContext('v - launchDevToolsInBrowser', () async {
-      final TerminalHandler terminalHandler = setUpTerminalHandler(
-          <FakeVmServiceRequest>[],
-          supportsServiceProtocol: true);
+      final TerminalHandler terminalHandler = setUpTerminalHandler(<FakeVmServiceRequest>[]);
       final FakeResidentRunner runner = terminalHandler.residentRunner as FakeResidentRunner;
       final FakeResidentDevtoolsHandler devtoolsHandler = runner.residentDevtoolsHandler as FakeResidentDevtoolsHandler;
 
@@ -973,7 +956,7 @@ void main() {
           'isolateId': fakeUnpausedIsolate.id,
           'enabled': 'true',
         },
-      )
+      ),
     ], logger: logger, supportsScreenshot: true);
 
     await terminalHandler.processTerminalInput('s');
@@ -1006,8 +989,8 @@ void main() {
           'isolateId': fakeUnpausedIsolate.id,
           'enabled': 'true',
         },
-      )
-    ], logger: logger, supportsScreenshot: false, fileSystem: fileSystem);
+      ),
+    ], logger: logger, fileSystem: fileSystem);
 
     await terminalHandler.processTerminalInput('s');
 
@@ -1040,8 +1023,8 @@ void main() {
           'isolateId': fakeUnpausedIsolate.id,
           'enabled': 'true',
         },
-      )
-    ], logger: logger, supportsScreenshot: false, web: true, fileSystem: fileSystem);
+      ),
+    ], logger: logger, web: true, fileSystem: fileSystem);
 
     await terminalHandler.processTerminalInput('s');
 
@@ -1072,7 +1055,6 @@ void main() {
     final TerminalHandler terminalHandler = setUpTerminalHandler(
       <FakeVmServiceRequest>[],
       logger: logger,
-      supportsScreenshot: false,
       supportsServiceProtocol: false,
       fileSystem: fileSystem,
     );
@@ -1089,7 +1071,6 @@ void main() {
     final TerminalHandler terminalHandler = setUpTerminalHandler(
       <FakeVmServiceRequest>[],
       logger: logger,
-      supportsScreenshot: false,
       supportsServiceProtocol: false,
       web: true,
       fileSystem: fileSystem,
@@ -1118,7 +1099,6 @@ void main() {
         ),
       ],
       logger: logger,
-      supportsScreenshot: false,
       fileSystem: fileSystem,
     );
 
@@ -1154,7 +1134,6 @@ void main() {
         ),
       ],
       logger: logger,
-      supportsScreenshot: false,
       fileSystem: fileSystem,
     );
 
@@ -1190,7 +1169,6 @@ void main() {
         ),
       ],
       logger: logger,
-      supportsScreenshot: false,
       web: true,
       fileSystem: fileSystem,
     );
@@ -1372,6 +1350,9 @@ class FakeResidentDevtoolsHandler extends Fake implements ResidentDevtoolsHandle
   }
 }
 
+// Unfortunately Device, despite not being immutable, has an `operator ==`.
+// Until we fix that, we have to also ignore related lints here.
+// ignore: avoid_implementing_value_types
 class FakeDevice extends Fake implements Device {
   @override
   bool isSupported() => true;

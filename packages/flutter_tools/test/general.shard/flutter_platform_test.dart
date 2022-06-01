@@ -69,7 +69,6 @@ void main() {
           BuildInfo.debug,
           startPaused: true,
         ),
-        enableObservatory: false,
       ), throwsAssertionError);
 
       expect(() => installHook(
@@ -79,7 +78,6 @@ void main() {
           startPaused: true,
           hostVmServicePort: 123,
         ),
-        enableObservatory: false,
       ), throwsAssertionError);
 
       FlutterPlatform capturedPlatform;
@@ -97,7 +95,7 @@ void main() {
         precompiledDillPath: 'def',
         precompiledDillFiles: expectedPrecompiledDillFiles,
         updateGoldens: true,
-        buildTestAssets: true,
+        testAssetDirectory: '/build/test',
         serverType: InternetAddressType.IPv6,
         icudtlPath: 'ghi',
         platformPluginRegistration: (FlutterPlatform platform) {
@@ -116,24 +114,10 @@ void main() {
       expect(flutterPlatform.precompiledDillPath, equals('def'));
       expect(flutterPlatform.precompiledDillFiles, expectedPrecompiledDillFiles);
       expect(flutterPlatform.updateGoldens, equals(true));
-      expect(flutterPlatform.buildTestAssets, equals(true));
+      expect(flutterPlatform.testAssetDirectory, '/build/test');
       expect(flutterPlatform.icudtlPath, equals('ghi'));
     });
   });
 }
 
 class FakeSuitePlatform extends Fake implements SuitePlatform { }
-
-// A FlutterPlatform with enough fields set to load and start a test.
-class TestFlutterPlatform extends FlutterPlatform {
-  TestFlutterPlatform() : super(
-    shellPath: '/',
-    debuggingOptions: DebuggingOptions.enabled(
-      const BuildInfo(
-        BuildMode.debug,
-        '',
-        treeShakeIcons: false,
-      ),
-    ),
-  );
-}

@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/artifacts.dart';
 import 'package:flutter_tools/src/base/os.dart';
@@ -20,9 +18,9 @@ import '../src/fakes.dart';
 
 /// Matches a doctor validation result.
 Matcher _matchDoctorValidation({
-  ValidationType validationType,
-  String statusInfo,
-  dynamic messages
+  required ValidationType validationType,
+  required String statusInfo,
+  required Object messages
 }) {
   return const TypeMatcher<ValidationResult>()
       .having((ValidationResult result) => result.type, 'type', validationType)
@@ -40,11 +38,11 @@ void main() {
     final Artifacts artifacts = Artifacts.test();
     final FlutterValidator flutterValidator = FlutterValidator(
       platform: FakePlatform(
-        operatingSystem: 'linux',
         localeName: 'en_US.UTF-8',
         environment: <String, String>{},
       ),
       flutterVersion: () => flutterVersion,
+        devToolsVersion: () => '2.8.0',
       userMessages: UserMessages(),
       artifacts: artifacts,
       fileSystem: fileSystem,
@@ -54,7 +52,7 @@ void main() {
         const FakeCommand(
           command: <String>['Artifact.genSnapshot'],
           exitCode: 1,
-        )
+        ),
       ])
     );
     fileSystem.file(artifacts.getArtifactPath(Artifact.genSnapshot)).createSync(recursive: true);
@@ -86,6 +84,7 @@ void main() {
         environment: <String, String>{},
       ),
       flutterVersion: () => flutterVersion,
+      devToolsVersion: () => '2.8.0',
       userMessages: UserMessages(),
       artifacts: Artifacts.test(),
       fileSystem: MemoryFileSystem.test(),
@@ -107,6 +106,7 @@ void main() {
     final FlutterValidator flutterValidator = FlutterValidator(
       platform: FakePlatform(operatingSystem: 'windows', localeName: 'en_US.UTF-8'),
       flutterVersion: () => FakeThrowingFlutterVersion(),
+      devToolsVersion: () => '2.8.0',
       userMessages: UserMessages(),
       artifacts: Artifacts.test(),
       fileSystem: MemoryFileSystem.test(),
@@ -142,6 +142,7 @@ void main() {
     final FlutterValidator flutterValidator = FlutterValidator(
       platform: platform,
       flutterVersion: () => flutterVersion,
+        devToolsVersion: () => '2.8.0',
       userMessages: UserMessages(),
       artifacts: artifacts,
       fileSystem: fileSystem,
@@ -169,6 +170,7 @@ void main() {
         },
       ),
       flutterVersion: () => FakeFlutterVersion(frameworkVersion: '1.0.0'),
+      devToolsVersion: () => '2.8.0',
       userMessages: UserMessages(),
       artifacts: Artifacts.test(),
       fileSystem: MemoryFileSystem.test(),
@@ -189,6 +191,7 @@ void main() {
       final FlutterValidator flutterValidator = FlutterValidator(
         platform: FakePlatform(localeName: 'en_US.UTF-8'),
         flutterVersion: () => FakeFlutterVersion(frameworkVersion: '1.0.0'),
+        devToolsVersion: () => '2.8.0',
         userMessages: UserMessages(),
         artifacts: Artifacts.test(),
         fileSystem: MemoryFileSystem.test(),
@@ -211,6 +214,7 @@ void main() {
           frameworkVersion: '1.0.0',
           repositoryUrl: null,
         ),
+        devToolsVersion: () => '2.8.0',
         userMessages: UserMessages(),
         artifacts: Artifacts.test(),
         fileSystem: MemoryFileSystem.test(),
@@ -229,7 +233,7 @@ void main() {
 }
 
 class FakeOperatingSystemUtils extends Fake implements OperatingSystemUtils {
-  FakeOperatingSystemUtils({this.name});
+  FakeOperatingSystemUtils({required this.name});
 
   @override
   final String name;

@@ -8,7 +8,6 @@ import 'dart:async';
 
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/application_package.dart';
-import 'package:flutter_tools/src/base/common.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/base/time.dart';
@@ -53,7 +52,6 @@ void main() {
       flutterProject: project,
       debuggingOptions: DebuggingOptions.disabled(BuildInfo.release),
       ipv6: true,
-      stayResident: true,
       urlTunneller: null,
       fileSystem: fileSystem,
       logger: BufferLogger.test(),
@@ -82,7 +80,6 @@ void main() {
       flutterProject: project,
       debuggingOptions: DebuggingOptions.disabled(BuildInfo.release),
       ipv6: true,
-      stayResident: true,
       urlTunneller: null,
       fileSystem: fileSystem,
       logger: BufferLogger.test(),
@@ -106,7 +103,6 @@ void main() {
       flutterProject: project,
       debuggingOptions: DebuggingOptions.disabled(BuildInfo.release),
       ipv6: true,
-      stayResident: true,
       urlTunneller: null,
       fileSystem: fileSystem,
       logger: BufferLogger.test(),
@@ -129,7 +125,6 @@ void main() {
       flutterProject: project,
       debuggingOptions: DebuggingOptions.disabled(BuildInfo.release),
       ipv6: true,
-      stayResident: true,
       urlTunneller: null,
       fileSystem: fileSystem,
       logger: BufferLogger.test(),
@@ -157,7 +152,6 @@ void main() {
       flutterProject: project,
       debuggingOptions: DebuggingOptions.disabled(BuildInfo.release),
       ipv6: true,
-      stayResident: true,
       urlTunneller: null,
       fileSystem: fileSystem,
       logger: BufferLogger.test(),
@@ -193,6 +187,9 @@ class FakeWebDevFS extends Fake implements WebDevFS {
   }
 }
 
+// Unfortunately Device, despite not being immutable, has an `operator ==`.
+// Until we fix that, we have to also ignore related lints here.
+// ignore: avoid_implementing_value_types
 class FakeWebDevice extends Fake implements Device {
   @override
   String get name => 'web';

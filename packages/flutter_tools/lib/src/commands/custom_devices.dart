@@ -159,6 +159,9 @@ Requires the custom devices feature to be enabled. You can enable it using "flut
   String get name => 'custom-devices';
 
   @override
+  String get category => FlutterCommandCategory.tools;
+
+  @override
   Future<FlutterCommandResult> runCommand() async => null;
 
   @override
@@ -367,7 +370,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
   static const String _kCheck = 'check';
   static const String _kSsh = 'ssh';
 
-  // A hostname consists of one or more "names", seperated by a dot.
+  // A hostname consists of one or more "names", separated by a dot.
   // A name may consist of alpha-numeric characters. Hyphens are also allowed,
   // but not as the first or last character of the name.
   static final RegExp _hostnameRegex = RegExp(r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$');
@@ -479,8 +482,8 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
   ///
   /// Only check if `--check` is explicitly specified. (Don't check by default)
   Future<FlutterCommandResult> runNonInteractively() async {
-    final String jsonStr = stringArg(_kJson);
-    final bool shouldCheck = boolArg(_kCheck) ?? false;
+    final String jsonStr = stringArgDeprecated(_kJson);
+    final bool shouldCheck = boolArgDeprecated(_kCheck) ?? false;
 
     dynamic json;
     try {
@@ -526,7 +529,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
 
     final String exampleOrDefault = <String>[
       if (example != null) 'example: $example',
-      if (defaultsTo != null) 'empty for $defaultsTo'
+      if (defaultsTo != null) 'empty for $defaultsTo',
     ].join(', ');
 
     if (exampleOrDefault.isNotEmpty) {
@@ -588,7 +591,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
   /// Run interactively (with user prompts), the target device should be
   /// connected to via ssh.
   Future<FlutterCommandResult> runInteractivelySsh() async {
-    final bool shouldCheck = boolArg(_kCheck) ?? true;
+    final bool shouldCheck = boolArgDeprecated(_kCheck) ?? true;
 
     // Listen to the keystrokes stream as late as possible, since it's a
     // single-subscription stream apparently.
@@ -632,7 +635,6 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
     final bool enabled = await askForBool(
       'enabled',
       description: 'Should the device be enabled?',
-      defaultsTo: true,
     );
 
     final String targetStr = await askForString(
@@ -671,7 +673,6 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
         'remote device has a static IP address and you have a way of '
         'specifying the "--observatory-host=<ip>" engine option, you might prefer '
         'not using port forwarding.',
-      defaultsTo: true,
     );
 
     final String screenshotCommand = await askForString(
@@ -699,9 +700,8 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
 
       // host-platform specific, filled out later
       pingCommand: const <String>[],
-      pingSuccessRegex: null,
 
-      postBuildCommand: null,
+      postBuildCommand: const <String>[],
 
       // just install to /tmp/${appName} by default
       installCommand: <String>[
@@ -710,7 +710,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
         '-o', 'BatchMode=yes',
         if (ipv6) '-6',
         r'${localPath}',
-        '$sshTarget:/tmp/\${appName}'
+        '$sshTarget:/tmp/\${appName}',
       ],
 
       uninstallCommand: <String>[
@@ -718,7 +718,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
         '-o', 'BatchMode=yes',
         if (ipv6) '-6',
         sshTarget,
-        r'rm -rf "/tmp/${appName}"'
+        r'rm -rf "/tmp/${appName}"',
       ],
 
       runDebugCommand: <String>[
@@ -726,7 +726,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
         '-o', 'BatchMode=yes',
         if (ipv6) '-6',
         sshTarget,
-        remoteRunDebugCommand
+        remoteRunDebugCommand,
       ],
 
       forwardPortCommand: usePortForwarding
@@ -736,11 +736,12 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
           '-o', 'ExitOnForwardFailure=yes',
           if (ipv6) '-6',
           '-L', '$formattedLoopbackIp:\${hostPort}:$formattedLoopbackIp:\${devicePort}',
-          sshTarget
+          sshTarget,
+          "echo 'Port forwarding success'; read",
         ]
         : null,
       forwardPortSuccessRegex: usePortForwarding
-        ? RegExp('Linux')
+        ? RegExp('Port forwarding success')
         : null,
 
       screenshotCommand: screenshotCommand.isNotEmpty
@@ -749,7 +750,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
           '-o', 'BatchMode=yes',
           if (ipv6) '-6',
           sshTarget,
-          screenshotCommand
+          screenshotCommand,
         ]
         : null
     );
@@ -761,7 +762,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
           if (ipv6) '-6',
           '-n', '1',
           '-w', '500',
-          targetStr
+          targetStr,
         ],
         explicitPingSuccessRegex: true,
         pingSuccessRegex: RegExp(r'[<=]\d+ms')
@@ -773,7 +774,7 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
           if (ipv6) '-6',
           '-c', '1',
           '-w', '1',
-          targetStr
+          targetStr,
         ],
         explicitPingSuccessRegex: true,
         pingSuccessRegex: null
@@ -802,10 +803,10 @@ class CustomDevicesAddCommand extends CustomDevicesCommandBase {
   Future<FlutterCommandResult> runCommand() async {
     checkFeatureEnabled();
 
-    if (stringArg(_kJson) != null) {
+    if (stringArgDeprecated(_kJson) != null) {
       return runNonInteractively();
     }
-    if (boolArg(_kSsh) == true) {
+    if (boolArgDeprecated(_kSsh) == true) {
       return runInteractivelySsh();
     }
     throw FallThroughError();

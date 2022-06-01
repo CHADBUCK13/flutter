@@ -61,6 +61,34 @@ void main() {
     semantics.dispose();
   }, semanticsEnabled: false);
 
+  testWidgets('Semantics tooltip', (WidgetTester tester) async {
+    final SemanticsTester semantics = SemanticsTester(tester);
+
+    final TestSemantics expectedSemantics = TestSemantics.root(
+      children: <TestSemantics>[
+        TestSemantics.rootChild(
+          tooltip: 'test1',
+          textDirection: TextDirection.ltr,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      Semantics(
+        tooltip: 'test1',
+        textDirection: TextDirection.ltr,
+      ),
+    );
+
+    expect(semantics, hasSemantics(
+      expectedSemantics,
+      ignoreTransform: true,
+      ignoreRect: true,
+      ignoreId: true,
+    ));
+    semantics.dispose();
+  });
+
   testWidgets('Detach and reattach assert', (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
     final GlobalKey key = GlobalKey();
@@ -493,8 +521,26 @@ void main() {
         case SemanticsAction.setText:
           semanticsOwner.performAction(expectedId, action, 'text');
           break;
-        default:
+        case SemanticsAction.copy:
+        case SemanticsAction.customAction:
+        case SemanticsAction.cut:
+        case SemanticsAction.decrease:
+        case SemanticsAction.didGainAccessibilityFocus:
+        case SemanticsAction.didLoseAccessibilityFocus:
+        case SemanticsAction.dismiss:
+        case SemanticsAction.increase:
+        case SemanticsAction.longPress:
+        case SemanticsAction.moveCursorBackwardByWord:
+        case SemanticsAction.moveCursorForwardByWord:
+        case SemanticsAction.paste:
+        case SemanticsAction.scrollDown:
+        case SemanticsAction.scrollLeft:
+        case SemanticsAction.scrollRight:
+        case SemanticsAction.scrollUp:
+        case SemanticsAction.showOnScreen:
+        case SemanticsAction.tap:
           semanticsOwner.performAction(expectedId, action);
+          break;
       }
       expect(performedActions.length, expectedLength);
       expect(performedActions.last, action);
@@ -1547,5 +1593,5 @@ void main() {
 }
 
 class CustomSortKey extends OrdinalSortKey {
-  const CustomSortKey(double order, {String? name}) : super(order, name: name);
+  const CustomSortKey(super.order, {super.name});
 }

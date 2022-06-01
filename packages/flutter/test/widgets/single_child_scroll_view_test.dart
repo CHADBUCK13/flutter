@@ -8,20 +8,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../rendering/rendering_tester.dart';
+import '../rendering/rendering_tester.dart' show TestClipPaintingContext;
 import 'semantics_tester.dart';
 
 class TestScrollPosition extends ScrollPositionWithSingleContext {
   TestScrollPosition({
-    required ScrollPhysics physics,
+    required super.physics,
     required ScrollContext state,
-    double initialPixels = 0.0,
-    ScrollPosition? oldPosition,
+    double super.initialPixels,
+    super.oldPosition,
   }) : super(
-    physics: physics,
     context: state,
-    initialPixels: initialPixels,
-    oldPosition: oldPosition,
   );
 }
 
@@ -44,7 +41,6 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
           child: Container(height: 600.0),
         ),
       ),
@@ -64,7 +60,6 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
           child: Container(height: 600.1),
         ),
       ),
@@ -216,7 +211,7 @@ void main() {
   });
 
   testWidgets('Vertical SingleChildScrollViews are primary by default', (WidgetTester tester) async {
-    const SingleChildScrollView view = SingleChildScrollView(scrollDirection: Axis.vertical);
+    const SingleChildScrollView view = SingleChildScrollView();
     expect(view.primary, isTrue);
   });
 
@@ -228,7 +223,6 @@ void main() {
   testWidgets('SingleChildScrollViews with controllers are non-primary by default', (WidgetTester tester) async {
     final SingleChildScrollView view = SingleChildScrollView(
       controller: ScrollController(),
-      scrollDirection: Axis.vertical,
     );
     expect(view.primary, isFalse);
   });

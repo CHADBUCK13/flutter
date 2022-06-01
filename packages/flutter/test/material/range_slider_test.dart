@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -134,7 +133,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0.0,
                     max: 100.0,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -193,7 +191,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -340,7 +337,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -387,7 +383,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -534,7 +529,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -587,7 +581,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -740,7 +733,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -793,7 +785,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     divisions: 10,
                     onChanged: (RangeValues newValues) {
@@ -848,7 +839,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     onChanged: (RangeValues newValues) {
                       setState(() {
@@ -903,7 +893,6 @@ void main() {
                 child: Center(
                   child: RangeSlider(
                     values: values,
-                    min: 0,
                     max: 100,
                     onChanged: (RangeValues newValues) {
                       setState(() {
@@ -950,7 +939,7 @@ void main() {
     expect(endValues.end, moreOrLessEquals(90, epsilon: 1));
   });
 
-  ThemeData _buildTheme() {
+  ThemeData buildTheme() {
     return ThemeData(
         platform: TargetPlatform.android,
         primarySwatch: Colors.blue,
@@ -971,7 +960,7 @@ void main() {
     );
   }
 
-  Widget _buildThemedApp({
+  Widget buildThemedApp({
     required ThemeData theme,
     Color? activeColor,
     Color? inactiveColor,
@@ -1005,10 +994,10 @@ void main() {
   }
 
   testWidgets('Range Slider uses the right theme colors for the right shapes for a default enabled slider', (WidgetTester tester) async {
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(theme: theme));
+    await tester.pumpWidget(buildThemedApp(theme: theme));
 
     final RenderBox sliderBox = tester.firstRenderObject<RenderBox>(find.byType(RangeSlider));
 
@@ -1035,10 +1024,10 @@ void main() {
 
   testWidgets('Range Slider uses the right theme colors for the right shapes when setting the active color', (WidgetTester tester) async {
     const Color activeColor = Color(0xcafefeed);
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(theme: theme, activeColor: activeColor));
+    await tester.pumpWidget(buildThemedApp(theme: theme, activeColor: activeColor));
 
     final RenderBox sliderBox = tester.firstRenderObject<RenderBox>(find.byType(RangeSlider));
 
@@ -1063,10 +1052,10 @@ void main() {
 
   testWidgets('Range Slider uses the right theme colors for the right shapes when setting the inactive color', (WidgetTester tester) async {
     const Color inactiveColor = Color(0xdeadbeef);
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(theme: theme, inactiveColor: inactiveColor));
+    await tester.pumpWidget(buildThemedApp(theme: theme, inactiveColor: inactiveColor));
 
     final RenderBox sliderBox = tester.firstRenderObject<RenderBox>(find.byType(RangeSlider));
 
@@ -1091,10 +1080,10 @@ void main() {
   testWidgets('Range Slider uses the right theme colors for the right shapes with active and inactive colors', (WidgetTester tester) async {
     const Color activeColor = Color(0xcafefeed);
     const Color inactiveColor = Color(0xdeadbeef);
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(
+    await tester.pumpWidget(buildThemedApp(
       theme: theme,
       activeColor: activeColor,
       inactiveColor: inactiveColor,
@@ -1122,10 +1111,10 @@ void main() {
   });
 
   testWidgets('Range Slider uses the right theme colors for the right shapes for a discrete slider', (WidgetTester tester) async {
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(theme: theme, divisions: 3));
+    await tester.pumpWidget(buildThemedApp(theme: theme, divisions: 3));
 
     final RenderBox sliderBox = tester.firstRenderObject<RenderBox>(find.byType(RangeSlider));
 
@@ -1154,11 +1143,11 @@ void main() {
   testWidgets('Range Slider uses the right theme colors for the right shapes for a discrete slider with active and inactive colors', (WidgetTester tester) async {
     const Color activeColor = Color(0xcafefeed);
     const Color inactiveColor = Color(0xdeadbeef);
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
 
-    await tester.pumpWidget(_buildThemedApp(
+    await tester.pumpWidget(buildThemedApp(
       theme: theme,
       activeColor: activeColor,
       inactiveColor: inactiveColor,
@@ -1193,10 +1182,10 @@ void main() {
   });
 
   testWidgets('Range Slider uses the right theme colors for the right shapes for a default disabled slider', (WidgetTester tester) async {
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(theme: theme, enabled: false));
+    await tester.pumpWidget(buildThemedApp(theme: theme, enabled: false));
 
     final RenderBox sliderBox = tester.firstRenderObject<RenderBox>(find.byType(RangeSlider));
 
@@ -1215,10 +1204,10 @@ void main() {
   testWidgets('Range Slider uses the right theme colors for the right shapes for a disabled slider with active and inactive colors', (WidgetTester tester) async {
     const Color activeColor = Color(0xcafefeed);
     const Color inactiveColor = Color(0xdeadbeef);
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
 
-    await tester.pumpWidget(_buildThemedApp(
+    await tester.pumpWidget(buildThemedApp(
       theme: theme,
       activeColor: activeColor,
       inactiveColor: inactiveColor,
@@ -1240,7 +1229,7 @@ void main() {
   });
 
   testWidgets('Range Slider uses the right theme colors for the right shapes when the value indicators are showing', (WidgetTester tester) async {
-    final ThemeData theme = _buildTheme();
+    final ThemeData theme = buildTheme();
     final SliderThemeData sliderTheme = theme.sliderTheme;
     RangeValues values = const RangeValues(0.5, 0.75);
 
@@ -1371,7 +1360,7 @@ void main() {
     );
 
     // Represents the Raised Button and Range Slider.
-    expect(valueIndicatorBox, paintsExactlyCountTimes(#drawPath, 3));
+    expect(valueIndicatorBox, paintsExactlyCountTimes(#drawPath, 4));
     expect(valueIndicatorBox, paintsExactlyCountTimes(#drawParagraph, 3));
 
     await tester.tap(find.text('Next'));
@@ -1390,7 +1379,7 @@ void main() {
     );
 
     // Represents the raised button with inner page text.
-    expect(valueIndicatorBox, paintsExactlyCountTimes(#drawPath, 1));
+    expect(valueIndicatorBox, paintsExactlyCountTimes(#drawPath, 2));
     expect(valueIndicatorBox, paintsExactlyCountTimes(#drawParagraph, 1));
 
     // Don't stop holding the value indicator.
@@ -1558,7 +1547,7 @@ void main() {
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return MediaQuery(
-                data: MediaQueryData.fromWindow(window).copyWith(textScaleFactor: 2.0),
+                data: MediaQueryData.fromWindow(WidgetsBinding.instance.window).copyWith(textScaleFactor: 2.0),
                 child: Material(
                   child: Center(
                     child: Theme(
@@ -1692,6 +1681,65 @@ void main() {
     );
   });
 
+  // Regression test for https://github.com/flutter/flutter/issues/101868
+  testWidgets('RangeSlider.label info should not write to semantic node', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Theme(
+          data: ThemeData.light(),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Material(
+              child: RangeSlider(
+                values: const RangeValues(10.0, 12.0),
+                max: 100.0,
+                onChanged: (RangeValues v) { },
+                labels: const RangeLabels('Begin', 'End'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getSemantics(find.byType(RangeSlider)),
+      matchesSemantics(
+        scopesRoute: true,
+        children:<Matcher>[
+          matchesSemantics(
+            children:  <Matcher>[
+              matchesSemantics(
+                isEnabled: true,
+                isSlider: true,
+                hasEnabledState: true,
+                hasIncreaseAction: true,
+                hasDecreaseAction: true,
+                value: '10%',
+                increasedValue: '10%',
+                decreasedValue: '5%',
+                label: ''
+              ),
+              matchesSemantics(
+                isEnabled: true,
+                isSlider: true,
+                hasEnabledState: true,
+                hasIncreaseAction: true,
+                hasDecreaseAction: true,
+                value: '12%',
+                increasedValue: '17%',
+                decreasedValue: '12%',
+                label: ''
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  });
+
   testWidgets('Range Slider Semantics', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -1702,7 +1750,6 @@ void main() {
             child: Material(
               child: RangeSlider(
                 values: const RangeValues(10.0, 12.0),
-                min: 0.0,
                 max: 100.0,
                 onChanged: (RangeValues v) { },
               ),
@@ -1757,11 +1804,7 @@ void main() {
       inactiveColor: Colors.grey,
       labels: const RangeLabels('lowerValue', 'upperValue'),
       max: 100.0,
-      min: 0.0,
       onChanged: null,
-      onChangeEnd: null,
-      onChangeStart: null,
-      semanticFormatterCallback: null,
       values: const RangeValues(25.0, 75.0),
     ).debugFillProperties(builder);
 
@@ -1895,8 +1938,9 @@ void main() {
 
     late Rect activeTrackRect;
     expect(renderObject, paints..something((Symbol method, List<dynamic> arguments) {
-      if (method != #drawRect)
+      if (method != #drawRect) {
         return false;
+      }
       activeTrackRect = arguments[0] as Rect;
       return true;
     }));

@@ -19,7 +19,7 @@ import '../compile.dart';
 import '../convert.dart';
 import '../dart/language_version.dart';
 import '../device.dart';
-import '../globals_null_migrated.dart' as globals;
+import '../globals.dart' as globals;
 import '../project.dart';
 import '../test/test_wrapper.dart';
 
@@ -55,7 +55,7 @@ FlutterPlatform installHook({
   String precompiledDillPath,
   Map<String, String> precompiledDillFiles,
   bool updateGoldens = false,
-  bool buildTestAssets = false,
+  String testAssetDirectory,
   InternetAddressType serverType = InternetAddressType.IPv4,
   Uri projectRootDirectory,
   FlutterProject flutterProject,
@@ -86,7 +86,7 @@ FlutterPlatform installHook({
     precompiledDillPath: precompiledDillPath,
     precompiledDillFiles: precompiledDillFiles,
     updateGoldens: updateGoldens,
-    buildTestAssets: buildTestAssets,
+    testAssetDirectory: testAssetDirectory,
     projectRootDirectory: projectRootDirectory,
     flutterProject: flutterProject,
     icudtlPath: icudtlPath,
@@ -280,7 +280,7 @@ class FlutterPlatform extends PlatformPlugin {
     this.precompiledDillPath,
     this.precompiledDillFiles,
     this.updateGoldens,
-    this.buildTestAssets,
+    this.testAssetDirectory,
     this.projectRootDirectory,
     this.flutterProject,
     this.icudtlPath,
@@ -297,7 +297,7 @@ class FlutterPlatform extends PlatformPlugin {
   final String precompiledDillPath;
   final Map<String, String> precompiledDillFiles;
   final bool updateGoldens;
-  final bool buildTestAssets;
+  final String testAssetDirectory;
   final Uri projectRootDirectory;
   final FlutterProject flutterProject;
   final String icudtlPath;
@@ -345,7 +345,6 @@ class FlutterPlatform extends PlatformPlugin {
     return controller.suite;
   }
 
-  @override
   StreamChannel<dynamic> loadChannel(String path, SuitePlatform platform) {
     if (_testCount > 0) {
       // Fail if there will be a port conflict.
@@ -389,7 +388,7 @@ class FlutterPlatform extends PlatformPlugin {
     bool isStatic,
   ) async {
     if (compiler == null || compiler.compiler == null) {
-      throw 'Compiler is not set up properly to compile $expression';
+      throw Exception('Compiler is not set up properly to compile $expression');
     }
     final CompilerOutput compilerOutput =
       await compiler.compiler.compileExpression(expression, definitions,
@@ -397,7 +396,7 @@ class FlutterPlatform extends PlatformPlugin {
     if (compilerOutput != null && compilerOutput.expressionData != null) {
       return base64.encode(compilerOutput.expressionData);
     }
-    throw 'Failed to compile $expression';
+    throw Exception('Failed to compile $expression');
   }
 
   TestDevice _createTestDevice(int ourTestCount) {
@@ -420,7 +419,7 @@ class FlutterPlatform extends PlatformPlugin {
       machine: machine,
       debuggingOptions: debuggingOptions,
       host: host,
-      buildTestAssets: buildTestAssets,
+      testAssetDirectory: testAssetDirectory,
       flutterProject: flutterProject,
       icudtlPath: icudtlPath,
       compileExpression: _compileExpressionService,

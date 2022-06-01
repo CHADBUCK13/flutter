@@ -8,12 +8,13 @@ import 'dart:convert';
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
+import 'package:flutter_tools/src/artifacts.dart';
 import 'package:flutter_tools/src/asset.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/platform.dart';
 import 'package:flutter_tools/src/bundle_builder.dart';
 import 'package:flutter_tools/src/devfs.dart';
-import 'package:flutter_tools/src/globals_null_migrated.dart' as globals;
+import 'package:flutter_tools/src/globals.dart' as globals;
 
 import '../src/common.dart';
 import '../src/context.dart';
@@ -311,7 +312,7 @@ flutter:
 
     await writeBundle(directory, <String, DevFSContent>{}, loggerOverride: testLogger);
 
-    expect(testLogger.errorText, contains('Expected Error Text'));
+    expect(testLogger.warningText, contains('Expected Error Text'));
   });
 
   testUsingContext('does not unnecessarily recreate asset manifest, font manifest, license', () async {
@@ -387,6 +388,63 @@ flutter:
     ProcessManager: () => FakeProcessManager.any(),
   });
 
+
+  group('Shaders: ', () {
+    MemoryFileSystem fileSystem;
+    Artifacts artifacts;
+    String impellerc;
+    Directory output;
+    String shaderPath;
+    String outputPath;
+
+    setUp(() {
+      artifacts = Artifacts.test();
+      fileSystem = MemoryFileSystem.test();
+      impellerc = artifacts.getHostArtifact(HostArtifact.impellerc).path;
+
+      fileSystem.file(impellerc).createSync(recursive: true);
+
+      output = fileSystem.directory('asset_output')..createSync(recursive: true);
+      shaderPath = fileSystem.path.join('assets', 'shader.frag');
+      outputPath = fileSystem.path.join(output.path, 'assets', 'shader.frag');
+      fileSystem.file(shaderPath).createSync(recursive: true);
+    });
+
+    testUsingContext('Including a shader triggers the shader compiler', () async {
+      fileSystem.file('.packages').createSync();
+      fileSystem.file('pubspec.yaml')
+        ..createSync()
+        ..writeAsStringSync(r'''
+  name: example
+  flutter:
+    assets:
+      - assets/shader.frag
+  ''');
+      final AssetBundle bundle = AssetBundleFactory.instance.createBundle();
+
+      expect(await bundle.build(manifestPath: 'pubspec.yaml', packagesPath: '.packages'), 0);
+
+      await writeBundle(output, bundle.entries, loggerOverride: testLogger);
+
+    }, overrides: <Type, Generator>{
+      Artifacts: () => artifacts,
+      FileSystem: () => fileSystem,
+      ProcessManager: () => FakeProcessManager.list(<FakeCommand>[
+        FakeCommand(
+          command: <String>[
+            impellerc,
+            '--flutter-spirv',
+            '--spirv=$outputPath',
+            '--input=/$shaderPath',
+          ],
+          onRun: () {
+            fileSystem.file(outputPath).createSync(recursive: true);
+          },
+        ),
+      ]),
+    });
+  });
+
   testUsingContext('Does not insert dummy file into additionalDependencies '
     'when wildcards are used by dependencies', () async {
     globals.fs.file('.packages').writeAsStringSync(r'''
@@ -419,7 +477,7 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 
   testUsingContext('does not track wildcard directories from dependencies', () async {
@@ -461,7 +519,7 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 
   testUsingContext('reports package that causes asset bundle error when it is '
@@ -495,7 +553,7 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 
   testUsingContext('does not report package that causes asset bundle error '
@@ -518,10 +576,10 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 
-  testUsingContext('does not include material design assets if uses-material-design: true is '
+  testUsingContext('does not include Material Design assets if uses-material-design: true is '
     'specified only by a dependency', () async {
     globals.fs.file('.packages').writeAsStringSync(r'''
 example:lib/
@@ -556,7 +614,7 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 
   testUsingContext('does not include assets in project directories as asset variants', () async {
@@ -589,7 +647,7 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 
   testUsingContext('deferred and regular assets are included in manifest alphabetically', () async {
@@ -626,6 +684,6 @@ flutter:
   }, overrides: <Type, Generator>{
     FileSystem: () => MemoryFileSystem.test(),
     ProcessManager: () => FakeProcessManager.any(),
-    Platform: () => FakePlatform(operatingSystem: 'linux'),
+    Platform: () => FakePlatform(),
   });
 }

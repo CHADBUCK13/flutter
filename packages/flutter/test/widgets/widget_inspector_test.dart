@@ -2,15 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// no-shuffle:
+//   //TODO(gspencergoog): Remove this tag once this test's state leaks/test
+//   dependencies have been fixed.
+//   https://github.com/flutter/flutter/issues/85160
+//   Fails with "flutter test --test-randomize-ordering-seed=456"
+// reduced-test-set:
+//   This file is run as part of a reduced test set in CI on Mac and Windows
+//   machines.
+@Tags(<String>['reduced-test-set', 'no-shuffle'])
+
 @TestOn('!chrome')
 
-// TODO(gspencergoog): Remove this tag once this test's state leaks/test
-// dependencies have been fixed.
-// https://github.com/flutter/flutter/issues/85160
-// Fails with "flutter test --test-randomize-ordering-seed=456"
-@Tags(<String>['no-shuffle'])
-
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -27,7 +30,7 @@ import 'widget_inspector_test_utils.dart';
 // columns will impact whether tests pass.
 
 class ClockDemo extends StatefulWidget {
-  const ClockDemo({ Key? key }) : super(key: key);
+  const ClockDemo({ super.key });
   @override
   State<ClockDemo> createState() => _ClockDemoState();
 }
@@ -65,9 +68,9 @@ class _ClockDemoState extends State<ClockDemo> {
 
 class ClockText extends StatefulWidget {
   const ClockText({
-    Key? key,
+    super.key,
     this.utcOffset = 0,
-  }) : super(key: key);
+  });
 
   final int utcOffset;
 
@@ -156,8 +159,6 @@ class _CreationLocation {
   String? name;
 }
 
-typedef InspectorServiceExtensionCallback = FutureOr<Map<String, Object>> Function(Map<String, String> parameters);
-
 class RenderRepaintBoundaryWithDebugPaint extends RenderRepaintBoundary {
   @override
   void debugPaintSize(PaintingContext context, Offset offset) {
@@ -212,9 +213,9 @@ class RenderRepaintBoundaryWithDebugPaint extends RenderRepaintBoundary {
 class RepaintBoundaryWithDebugPaint extends RepaintBoundary {
   /// Creates a widget that isolates repaints.
   const RepaintBoundaryWithDebugPaint({
-    Key? key,
-    Widget? child,
-  }) : super(key: key, child: child);
+    super.key,
+    super.child,
+  });
 
   @override
   RenderRepaintBoundary createRenderObject(BuildContext context) {
@@ -494,7 +495,6 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
             child: Overlay(
               initialEntries: <OverlayEntry>[
                 OverlayEntry(
-                  opaque: false,
                   maintainState: true,
                   builder: (BuildContext _) => createSubtree(width: 94.0),
                 ),
@@ -504,7 +504,6 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
                   builder: (BuildContext _) => createSubtree(width: 95.0),
                 ),
                 OverlayEntry(
-                  opaque: false,
                   maintainState: true,
                   builder: (BuildContext _) => createSubtree(width: 96.0, key: clickTarget),
                 ),
@@ -813,9 +812,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
         elementA.toDiagnosticsNode().toJsonMap(
           InspectorSerializationDelegate(
             service: service,
-            summaryTree: false,
             includeProperties: true,
-            addAdditionalPropertiesCallback: null,
           ),
         ),
         isNotNull,
@@ -1609,7 +1606,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       // directories so we get an empty tree other than the root that is always
       // included.
       final Object? rootWidget = service.toObject(rootJson['valueId']! as String);
-      expect(rootWidget, equals(WidgetsBinding.instance?.renderViewElement));
+      expect(rootWidget, equals(WidgetsBinding.instance.renderViewElement));
       List<Object?> childrenJson = rootJson['children']! as List<Object?>;
       // There are no summary tree children.
       expect(childrenJson.length, equals(0));
@@ -1999,7 +1996,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       _CreationLocation location = knownLocations[id]!;
       expect(location.file, equals(file));
       // ClockText widget.
-      expect(location.line, equals(60));
+      expect(location.line, equals(63));
       expect(location.column, equals(9));
       expect(location.name, equals('ClockText'));
       expect(count, equals(1));
@@ -2009,7 +2006,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       location = knownLocations[id]!;
       expect(location.file, equals(file));
       // Text widget in _ClockTextState build method.
-      expect(location.line, equals(98));
+      expect(location.line, equals(101));
       expect(location.column, equals(12));
       expect(location.name, equals('Text'));
       expect(count, equals(1));
@@ -2036,7 +2033,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       location = knownLocations[id]!;
       expect(location.file, equals(file));
       // ClockText widget.
-      expect(location.line, equals(60));
+      expect(location.line, equals(63));
       expect(location.column, equals(9));
       expect(location.name, equals('ClockText'));
       expect(count, equals(3)); // 3 clock widget instances rebuilt.
@@ -2046,7 +2043,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       location = knownLocations[id]!;
       expect(location.file, equals(file));
       // Text widget in _ClockTextState build method.
-      expect(location.line, equals(98));
+      expect(location.line, equals(101));
       expect(location.column, equals(12));
       expect(location.name, equals('Text'));
       expect(count, equals(3)); // 3 clock widget instances rebuilt.
@@ -2512,13 +2509,13 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
         },
       );
 
-      final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized() as TestWidgetsFlutterBinding;
+      final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized();
       final ui.Image screenshotImage = (await binding.runAsync<ui.Image>(() async {
         final String base64Screenshot = (await base64ScreenshotFuture)! as String;
         final ui.Codec codec = await ui.instantiateImageCodec(base64.decode(base64Screenshot));
         final ui.FrameInfo frame = await codec.getNextFrame();
         return frame.image;
-      }, additionalTime: const Duration(seconds: 11)))!;
+      }))!;
 
       await expectLater(
         screenshotImage,
@@ -2612,7 +2609,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
 
         // Reloads the app.
         final FlutterExceptionHandler? oldHandler = FlutterError.onError;
-        final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized() as TestWidgetsFlutterBinding;
+        final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized();
         // We need the runTest to setup the fake async in the test binding.
         await binding.runTest(() async {
           binding.reassembleApplication();
@@ -2927,7 +2924,6 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       final InspectorSerializationDelegate delegate =
         InspectorSerializationDelegate(
           service: service,
-          summaryTree: false,
           includeProperties: true,
           addAdditionalPropertiesCallback:
             (DiagnosticsNode node, InspectorSerializationDelegate delegate) {
@@ -2956,7 +2952,6 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       final InspectorSerializationDelegate emptyDelegate =
         InspectorSerializationDelegate(
           service: service,
-          summaryTree: false,
           includeProperties: true,
           addAdditionalPropertiesCallback:
             (DiagnosticsNode node, InspectorSerializationDelegate delegate) {
@@ -2966,9 +2961,7 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       final InspectorSerializationDelegate defaultDelegate =
         InspectorSerializationDelegate(
           service: service,
-          summaryTree: false,
           includeProperties: true,
-          addAdditionalPropertiesCallback: null,
         );
       expect(node.toJsonMap(emptyDelegate), node.toJsonMap(defaultDelegate));
     });
@@ -3001,6 +2994,46 @@ class _TestWidgetInspectorService extends TestWidgetInspectorService {
       expect(debugIsLocalCreationLocation(paddingElement), isFalse);
       expect(debugIsLocalCreationLocation(paddingElement.widget), isFalse);
     }, skip: !WidgetInspectorService.instance.isWidgetCreationTracked()); // [intended] Test requires --track-widget-creation flag.
+
+    testWidgets('debugIsWidgetLocalCreation test', (WidgetTester tester) async {
+      setupDefaultPubRootDirectory(service);
+
+      final GlobalKey key = GlobalKey();
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Text('target', key: key, textDirection: TextDirection.ltr),
+          ),
+        ),
+      );
+
+      final Element element = key.currentContext! as Element;
+      expect(debugIsWidgetLocalCreation(element.widget), isTrue);
+
+      final Finder paddingFinder = find.byType(Padding);
+      final Element paddingElement = paddingFinder.evaluate().first;
+      expect(debugIsWidgetLocalCreation(paddingElement.widget), isFalse);
+    }, skip: !WidgetInspectorService.instance.isWidgetCreationTracked()); // [intended] Test requires --track-widget-creation flag.
+
+    testWidgets('debugIsWidgetLocalCreation false test', (WidgetTester tester) async {
+      final GlobalKey key = GlobalKey();
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Text('target', key: key, textDirection: TextDirection.ltr),
+          ),
+        ),
+      );
+
+      final Element element = key.currentContext! as Element;
+      expect(debugIsWidgetLocalCreation(element.widget), isFalse);
+    }, skip: WidgetInspectorService.instance.isWidgetCreationTracked()); // [intended] Test requires --no-track-widget-creation flag.
 
     test('devToolsInspectorUri test', () {
       activeDevToolsServerAddress = 'http://127.0.0.1:9100';

@@ -69,7 +69,7 @@ flutter:
     expect(depfile, exists);
 
     final DepfileService depfileService = DepfileService(
-      logger: null,
+      logger: BufferLogger.test(),
       fileSystem: fileSystem,
     );
     final Depfile dependencies = depfileService.parse(depfile);
@@ -181,8 +181,8 @@ flutter:
     final BufferLogger logger = BufferLogger.test();
     fileSystem.file('bundle.sksl').writeAsStringSync(json.encode(
       <String, String>{
-        'engineRevision': '1'
-      }
+        'engineRevision': '1',
+      },
     ));
 
     expect(() => processSkSLBundle(
@@ -203,8 +203,8 @@ flutter:
     fileSystem.file('bundle.sksl').writeAsStringSync(json.encode(
       <String, Object>{
         'engineRevision': '2',
-        'platform': 'fuchsia',
-        'data': <String, Object>{}
+        'platform': 'fuchsia-arm64',
+        'data': <String, Object>{},
       }
     ));
 
@@ -228,8 +228,8 @@ flutter:
       <String, Object>{
         'engineRevision': '2',
         'platform': 'android',
-        'data': <String, Object>{}
-      }
+        'data': <String, Object>{},
+      },
     ));
 
     final DevFSContent content = processSkSLBundle(

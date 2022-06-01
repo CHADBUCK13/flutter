@@ -2,17 +2,35 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class RecognizableTestException implements Exception {
+  const RecognizableTestException();
+}
 
 class TestDelegate extends BinaryMessenger {
   @override
   Future<ByteData?>? send(String channel, ByteData? message) async {
     expect(channel, '');
     expect(message, isNull);
-    throw 'Vic Fontaine';
+    throw const RecognizableTestException();
+  }
+
+  // Rest of the API isn't needed for this test.
+  @override
+  Future<void> handlePlatformMessage(String channel, ByteData? data, ui.PlatformMessageResponseCallback? callback) => throw UnimplementedError();
+  @override
+  void setMessageHandler(String channel, MessageHandler? handler) => throw UnimplementedError();
+}
+
+class WorkingTestDelegate extends BinaryMessenger {
+  @override
+  Future<ByteData?>? send(String channel, ByteData? message) async {
+    return ByteData.sublistView(Uint8List.fromList(<int>[1, 2, 3]));
   }
 
   // Rest of the API isn't needed for this test.
@@ -32,7 +50,32 @@ void main() {
       await TestDefaultBinaryMessenger(delegate).send('', null);
       expect(true, isFalse); // should not reach here
     } catch (error) {
-      expect(error, 'Vic Fontaine');
+      expect(error, const RecognizableTestException());
     }
+  });
+
+  testWidgets('Mock MessageHandler is set correctly',
+      (WidgetTester tester) async {
+    final TestDefaultBinaryMessenger binaryMessenger =
+        TestDefaultBinaryMessenger(WorkingTestDelegate());
+    binaryMessenger.setMockMessageHandler(
+        '',
+        (ByteData? message) async =>
+            ByteData.sublistView(Uint8List.fromList(<int>[2, 3, 4])));
+
+    final ByteData? result = await binaryMessenger.send('', null);
+    expect(result?.buffer.asUint8List(), Uint8List.fromList(<int>[2, 3, 4]));
+  });
+
+  testWidgets('Mock AllMessagesHandler is set correctly',
+      (WidgetTester tester) async {
+    final TestDefaultBinaryMessenger binaryMessenger =
+        TestDefaultBinaryMessenger(WorkingTestDelegate());
+    binaryMessenger.allMessagesHandler =
+        (String channel, MessageHandler? handler, ByteData? message) async =>
+            ByteData.sublistView(Uint8List.fromList(<int>[2, 3, 4]));
+
+    final ByteData? result = await binaryMessenger.send('', null);
+    expect(result?.buffer.asUint8List(), Uint8List.fromList(<int>[2, 3, 4]));
   });
 }

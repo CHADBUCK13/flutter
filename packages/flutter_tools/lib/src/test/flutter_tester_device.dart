@@ -12,13 +12,14 @@ import 'package:meta/meta.dart';
 import 'package:process/process.dart';
 import 'package:stream_channel/stream_channel.dart';
 
-import '../base/common.dart';
 import '../base/file_system.dart';
 import '../base/io.dart';
 import '../base/logger.dart';
+import '../base/os.dart';
 import '../base/platform.dart';
 import '../convert.dart';
 import '../device.dart';
+import '../globals.dart' as globals;
 import '../project.dart';
 import '../vmservice.dart';
 
@@ -38,7 +39,7 @@ class FlutterTesterTestDevice extends TestDevice {
     @required this.enableObservatory,
     @required this.machine,
     @required this.host,
-    @required this.buildTestAssets,
+    @required this.testAssetDirectory,
     @required this.flutterProject,
     @required this.icudtlPath,
     @required this.compileExpression,
@@ -46,7 +47,13 @@ class FlutterTesterTestDevice extends TestDevice {
   })  : assert(shellPath != null), // Please provide the path to the shell in the SKY_SHELL environment variable.
         assert(!debuggingOptions.startPaused || enableObservatory),
         _gotProcessObservatoryUri = enableObservatory
-            ? Completer<Uri>() : (Completer<Uri>()..complete(null));
+            ? Completer<Uri>() : (Completer<Uri>()..complete(null)),
+        _operatingSystemUtils = OperatingSystemUtils(
+          fileSystem: fileSystem,
+          logger: logger,
+          platform: platform,
+          processManager: processManager,
+        );
 
   /// Used for logging to identify the test that is currently being executed.
   final int id;
@@ -59,7 +66,7 @@ class FlutterTesterTestDevice extends TestDevice {
   final bool enableObservatory;
   final bool machine;
   final InternetAddress host;
-  final bool buildTestAssets;
+  final String testAssetDirectory;
   final FlutterProject flutterProject;
   final String icudtlPath;
   final CompileExpression compileExpression;
@@ -70,6 +77,7 @@ class FlutterTesterTestDevice extends TestDevice {
 
   Process _process;
   HttpServer _server;
+  final OperatingSystemUtils _operatingSystemUtils;
 
   /// Starts the device.
   ///
@@ -85,8 +93,14 @@ class FlutterTesterTestDevice extends TestDevice {
     // Let the server choose an unused port.
     _server = await bind(host, /*port*/ 0);
     logger.printTrace('test $id: test harness socket server is running at port:${_server.port}');
-
     final List<String> command = <String>[
+      // Until an arm64 flutter tester binary is available, force to run in Rosetta
+      // to avoid "unexpectedly got a signal in sigtramp" crash.
+      // https://github.com/flutter/flutter/issues/88106
+      if (_operatingSystemUtils.hostPlatform == HostPlatform.darwin_arm) ...<String>[
+        '/usr/bin/arch',
+        '-x86_64',
+      ],
       shellPath,
       if (enableObservatory) ...<String>[
         // Some systems drive the _FlutterPlatform class in an unusual way, where
@@ -113,7 +127,10 @@ class FlutterTesterTestDevice extends TestDevice {
       '--enable-dart-profiling',
       '--non-interactive',
       '--use-test-fonts',
+      '--disable-asset-fonts',
       '--packages=${debuggingOptions.buildInfo.packagesPath}',
+      if (testAssetDirectory != null)
+        '--flutter-assets-dir=$testAssetDirectory',
       if (debuggingOptions.nullAssertions)
         '--dart-flags=--null_assertions',
       ...debuggingOptions.dartEntrypointArgs,
@@ -133,8 +150,8 @@ class FlutterTesterTestDevice extends TestDevice {
       'FONTCONFIG_FILE': fontConfigManager.fontConfigFile.path,
       'SERVER_PORT': _server.port.toString(),
       'APP_NAME': flutterProject?.manifest?.appName ?? '',
-      if (buildTestAssets)
-        'UNIT_TEST_ASSETS': fileSystem.path.join(flutterProject?.directory?.path ?? '', 'build', 'unit_test_assets'),
+      if (testAssetDirectory != null)
+        'UNIT_TEST_ASSETS': testAssetDirectory,
     };
 
     logger.printTrace('test $id: Starting flutter_tester process with command=$command, environment=$environment');
@@ -279,7 +296,6 @@ class FlutterTesterTestDevice extends TestDevice {
     @required Process process,
     @required Future<void> Function(Uri uri) reportObservatoryUri,
   }) {
-    const String observatoryString = 'Observatory listening on ';
     for (final Stream<List<int>> stream in <Stream<List<int>>>[
       process.stderr,
       process.stdout,
@@ -291,9 +307,10 @@ class FlutterTesterTestDevice extends TestDevice {
             (String line) async {
           logger.printTrace('test $id: Shell: $line');
 
-          if (line.startsWith(observatoryString)) {
+          final Match match = globals.kVMServiceMessageRegExp.firstMatch(line);
+          if (match != null) {
             try {
-              final Uri uri = Uri.parse(line.substring(observatoryString.length));
+              final Uri uri = Uri.parse(match[1]);
               if (reportObservatoryUri != null) {
                 await reportObservatoryUri(uri);
               }

@@ -9,7 +9,6 @@ import 'dart:async';
 import 'package:browser_launcher/browser_launcher.dart';
 import 'package:meta/meta.dart';
 
-import 'base/common.dart';
 import 'base/logger.dart';
 import 'build_info.dart';
 import 'resident_runner.dart';
@@ -60,7 +59,10 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
   bool launchedInBrowser = false;
 
   @override
-  DevToolsServerAddress get activeDevToolsServer => _devToolsLauncher?.activeDevToolsServer;
+  DevToolsServerAddress get activeDevToolsServer {
+    assert(!_readyToAnnounce || _devToolsLauncher?.activeDevToolsServer != null);
+    return _devToolsLauncher?.activeDevToolsServer;
+  }
 
   @override
   bool get readyToAnnounce => _readyToAnnounce;
@@ -72,6 +74,7 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
     Uri devToolsServerAddress,
     @required List<FlutterDevice> flutterDevices,
   }) async {
+    assert(!_readyToAnnounce);
     if (!_residentRunner.supportsServiceProtocol || _devToolsLauncher == null) {
       return;
     }
@@ -82,14 +85,20 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
       _served = true;
     }
     await _devToolsLauncher.ready;
-    // Do not attempt to print debugger list if the connection has failed.
-    if (_devToolsLauncher.activeDevToolsServer == null) {
+    // Do not attempt to print debugger list if the connection has failed or if we're shutting down.
+    if (_devToolsLauncher.activeDevToolsServer == null || _shutdown) {
+      assert(!_readyToAnnounce);
       return;
     }
     final List<FlutterDevice> devicesWithExtension = await _devicesWithExtensions(flutterDevices);
     await _maybeCallDevToolsUriServiceExtension(devicesWithExtension);
     await _callConnectedVmServiceUriExtension(devicesWithExtension);
+    if (_shutdown) {
+      // If we're shutting down, no point reporting the debugger list.
+      return;
+    }
     _readyToAnnounce = true;
+    assert(_devToolsLauncher.activeDevToolsServer != null);
     if (_residentRunner.reportedDebuggers) {
       // Since the DevTools only just became available, we haven't had a chance to
       // report their URLs yet. Do so now.
@@ -151,7 +160,7 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
       );
     } on Exception catch (e) {
       _logger.printError(
-        'Failed to set DevTools server address: ${e.toString()}. Deep links to'
+        'Failed to set DevTools server address: $e. Deep links to'
         ' DevTools will not show in Flutter errors.',
       );
     }
@@ -159,7 +168,7 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
 
   Future<List<FlutterDevice>> _devicesWithExtensions(List<FlutterDevice> flutterDevices) async {
     final List<FlutterDevice> devices = await Future.wait(<Future<FlutterDevice>>[
-      for (final FlutterDevice device in flutterDevices) _waitForExtensionsForDevice(device)
+      for (final FlutterDevice device in flutterDevices) _waitForExtensionsForDevice(device),
     ]);
     return devices.where((FlutterDevice device) => device != null).toList();
   }
@@ -205,7 +214,7 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
     } on Exception catch (e) {
       _logger.printError(e.toString());
       _logger.printError(
-        'Failed to set vm service URI: ${e.toString()}. Deep links to DevTools'
+        'Failed to set vm service URI: $e. Deep links to DevTools'
         ' will not show in Flutter errors.',
       );
     }
@@ -248,6 +257,7 @@ class FlutterResidentDevtoolsHandler implements ResidentDevtoolsHandler {
       return;
     }
     _shutdown = true;
+    _readyToAnnounce = false;
     await _devToolsLauncher.close();
   }
 }

@@ -18,10 +18,11 @@ import '../base/io.dart';
 import  '../build_info.dart';
 import '../commands/daemon.dart';
 import '../compile.dart';
+import '../daemon.dart';
 import '../device.dart';
 import '../device_port_forwarder.dart';
 import '../fuchsia/fuchsia_device.dart';
-import '../globals_null_migrated.dart' as globals;
+import '../globals.dart' as globals;
 import '../ios/devices.dart';
 import '../ios/simulators.dart';
 import '../macos/macos_ipad_device.dart';
@@ -144,12 +145,15 @@ If the app or module is already running and the specific observatory port is
 known, it can be explicitly provided to attach via the command-line, e.g.
 `$ flutter attach --debug-port 12345`''';
 
+  @override
+  final String category = FlutterCommandCategory.tools;
+
   int get debugPort {
     if (argResults['debug-port'] == null) {
       return null;
     }
     try {
-      return int.parse(stringArg('debug-port'));
+      return int.parse(stringArgDeprecated('debug-port'));
     } on Exception catch (error) {
       throwToolExit('Invalid port for `--debug-port`: $error');
     }
@@ -159,9 +163,9 @@ known, it can be explicitly provided to attach via the command-line, e.g.
     if (argResults['debug-url'] == null) {
       return null;
     }
-    final Uri uri = Uri.tryParse(stringArg('debug-url'));
+    final Uri uri = Uri.tryParse(stringArgDeprecated('debug-url'));
     if (uri == null) {
-      throwToolExit('Invalid `--debug-url`: ${stringArg('debug-url')}');
+      throwToolExit('Invalid `--debug-url`: ${stringArgDeprecated('debug-url')}');
     }
     if (!uri.hasPort) {
       throwToolExit('Port not specified for `--debug-url`: $uri');
@@ -170,10 +174,10 @@ known, it can be explicitly provided to attach via the command-line, e.g.
   }
 
   String get appId {
-    return stringArg('app-id');
+    return stringArgDeprecated('app-id');
   }
 
-  String get userIdentifier => stringArg(FlutterOptions.kDeviceUser);
+  String get userIdentifier => stringArgDeprecated(FlutterOptions.kDeviceUser);
 
   @override
   Future<void> validateCommand() async {
@@ -230,10 +234,12 @@ known, it can be explicitly provided to attach via the command-line, e.g.
   Future<void> _attachToDevice(Device device) async {
     final FlutterProject flutterProject = FlutterProject.current();
 
-    final Daemon daemon = boolArg('machine')
+    final Daemon daemon = boolArgDeprecated('machine')
       ? Daemon(
-          stdinCommandStream,
-          stdoutCommandResponse,
+          DaemonConnection(
+            daemonStreams: DaemonStreams.fromStdio(globals.stdio, logger: globals.logger),
+            logger: globals.logger,
+          ),
           notifyingLogger: (globals.logger is NotifyingLogger)
             ? globals.logger as NotifyingLogger
             : NotifyingLogger(verbose: globals.logger.isVerbose, parent: globals.logger),
@@ -249,7 +255,7 @@ known, it can be explicitly provided to attach via the command-line, e.g.
 
     if (debugPort == null && debugUri == null) {
       if (device is FuchsiaDevice) {
-        final String module = stringArg('module');
+        final String module = stringArgDeprecated('module');
         if (module == null) {
           throwToolExit("'--module' is required for attaching to a Fuchsia device");
         }
@@ -330,7 +336,7 @@ known, it can be explicitly provided to attach via the command-line, e.g.
                 connectionInfoCompleter: connectionInfoCompleter,
                 appStartedCompleter: appStartedCompleter,
                 allowExistingDdsInstance: true,
-                enableDevTools: boolArg(FlutterCommand.kEnableDevTools),
+                enableDevTools: boolArgDeprecated(FlutterCommand.kEnableDevTools),
               );
             },
             device,
@@ -363,8 +369,8 @@ known, it can be explicitly provided to attach via the command-line, e.g.
             terminal: globals.terminal,
             signals: globals.signals,
             processInfo: globals.processInfo,
-            reportReady: boolArg('report-ready'),
-            pidFile: stringArg('pid-file'),
+            reportReady: boolArgDeprecated('report-ready'),
+            pidFile: stringArgDeprecated('pid-file'),
           )
             ..registerSignalHandlers()
             ..setupTerminal();
@@ -372,7 +378,7 @@ known, it can be explicitly provided to attach via the command-line, e.g.
         result = await runner.attach(
           appStartedCompleter: onAppStart,
           allowExistingDdsInstance: true,
-          enableDevTools: boolArg(FlutterCommand.kEnableDevTools),
+          enableDevTools: boolArgDeprecated(FlutterCommand.kEnableDevTools),
         );
         if (result != 0) {
           throwToolExit(null, exitCode: result);
@@ -412,7 +418,7 @@ known, it can be explicitly provided to attach via the command-line, e.g.
     final FlutterDevice flutterDevice = await FlutterDevice.create(
       device,
       target: targetFile,
-      targetModel: TargetModel(stringArg('target-model')),
+      targetModel: TargetModel(stringArgDeprecated('target-model')),
       buildInfo: buildInfo,
       userIdentifier: userIdentifier,
       platform: globals.platform,
@@ -431,8 +437,8 @@ known, it can be explicitly provided to attach via the command-line, e.g.
           target: targetFile,
           debuggingOptions: debuggingOptions,
           packagesFilePath: globalResults['packages'] as String,
-          projectRootPath: stringArg('project-root'),
-          dillOutputPath: stringArg('output-dill'),
+          projectRootPath: stringArgDeprecated('project-root'),
+          dillOutputPath: stringArgDeprecated('output-dill'),
           ipv6: usesIpv6,
           flutterProject: flutterProject,
         )

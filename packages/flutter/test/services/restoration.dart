@@ -19,8 +19,9 @@ class MockRestorationManager extends TestRestorationManager {
 
   @override
   void initChannels() {
-    if (enableChannels)
+    if (enableChannels) {
       super.initChannels();
+    }
   }
 
   @override
@@ -59,7 +60,7 @@ class MockRestorationManager extends TestRestorationManager {
   set rootBucket(Future<RestorationBucket?> value) {
     _rootBucket = value;
     _isRestoring = true;
-    ServicesBinding.instance!.addPostFrameCallback((Duration _) {
+    ServicesBinding.instance.addPostFrameCallback((Duration _) {
       _isRestoring = false;
     });
     notifyListeners();

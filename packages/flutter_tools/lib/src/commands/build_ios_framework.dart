@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'package:meta/meta.dart';
 
 import '../artifacts.dart';
@@ -18,7 +16,7 @@ import '../build_system/build_system.dart';
 import '../build_system/targets/ios.dart';
 import '../cache.dart';
 import '../flutter_plugins.dart';
-import '../globals_null_migrated.dart' as globals;
+import '../globals.dart' as globals;
 import '../macos/cocoapod_utils.dart';
 import '../project.dart';
 import '../runner/flutter_command.dart' show DevelopmentArtifact, FlutterCommandResult;
@@ -31,15 +29,17 @@ import 'build.dart';
 /// managers.
 class BuildIOSFrameworkCommand extends BuildSubCommand {
   BuildIOSFrameworkCommand({
-    FlutterVersion flutterVersion, // Instantiating FlutterVersion kicks off networking, so delay until it's needed, but allow test injection.
-    @required BuildSystem buildSystem,
-    @required bool verboseHelp,
-    Cache cache,
-    Platform platform
-  }) : _flutterVersion = flutterVersion,
+    // Instantiating FlutterVersion kicks off networking, so delay until it's needed, but allow test injection.
+    @visibleForTesting FlutterVersion? flutterVersion,
+    required BuildSystem buildSystem,
+    required bool verboseHelp,
+    Cache? cache,
+    Platform? platform
+  }) : _injectedFlutterVersion = flutterVersion,
        _buildSystem = buildSystem,
        _injectedCache = cache,
-       _injectedPlatform = platform {
+       _injectedPlatform = platform,
+       super(verboseHelp: verboseHelp) {
     addTreeShakeIconsFlag();
     usesTargetOption();
     usesFlavorOption();
@@ -53,26 +53,22 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
 
     argParser
       ..addFlag('debug',
-        negatable: true,
         defaultsTo: true,
         help: 'Whether to produce a framework for the debug build configuration. '
               'By default, all build configurations are built.'
       )
       ..addFlag('profile',
-        negatable: true,
         defaultsTo: true,
         help: 'Whether to produce a framework for the profile build configuration. '
               'By default, all build configurations are built.'
       )
       ..addFlag('release',
-        negatable: true,
         defaultsTo: true,
         help: 'Whether to produce a framework for the release build configuration. '
               'By default, all build configurations are built.'
       )
       ..addFlag('universal',
         help: '(deprecated) Produce universal frameworks that include all valid architectures.',
-        negatable: true,
         hide: !verboseHelp,
       )
       ..addFlag('xcframework',
@@ -83,6 +79,9 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
       )
       ..addFlag('cocoapods',
         help: 'Produce a Flutter.podspec instead of an engine Flutter.xcframework (recommended if host app uses CocoaPods).',
+      )
+      ..addFlag('static',
+        help: 'Build plugins as static frameworks. Link on, but do not embed these frameworks in the existing Xcode project.',
       )
       ..addOption('output',
         abbr: 'o',
@@ -96,16 +95,18 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
       );
   }
 
-  final BuildSystem _buildSystem;
+  final BuildSystem? _buildSystem;
   BuildSystem get buildSystem => _buildSystem ?? globals.buildSystem;
 
   Cache get _cache => _injectedCache ?? globals.cache;
-  final Cache _injectedCache;
+  final Cache? _injectedCache;
 
   Platform get _platform => _injectedPlatform ?? globals.platform;
-  final Platform _injectedPlatform;
+  final Platform? _injectedPlatform;
 
-  FlutterVersion _flutterVersion;
+  // FlutterVersion.instance kicks off git processing which can sometimes fail, so don't try it until needed.
+  FlutterVersion get _flutterVersion => _injectedFlutterVersion ?? globals.flutterVersion;
+  final FlutterVersion? _injectedFlutterVersion;
 
   @override
   bool get reportNullSafety => false;
@@ -123,18 +124,18 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
     DevelopmentArtifact.iOS,
   };
 
-  FlutterProject _project;
+  late final FlutterProject _project = FlutterProject.current();
 
   Future<List<BuildInfo>> getBuildInfos() async {
     final List<BuildInfo> buildInfos = <BuildInfo>[];
 
-    if (boolArg('debug')) {
+    if (boolArgDeprecated('debug')) {
       buildInfos.add(await getBuildInfo(forcedBuildMode: BuildMode.debug));
     }
-    if (boolArg('profile')) {
+    if (boolArgDeprecated('profile')) {
       buildInfos.add(await getBuildInfo(forcedBuildMode: BuildMode.profile));
     }
-    if (boolArg('release')) {
+    if (boolArgDeprecated('release')) {
       buildInfos.add(await getBuildInfo(forcedBuildMode: BuildMode.release));
     }
 
@@ -147,12 +148,11 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
   @override
   Future<void> validateCommand() async {
     await super.validateCommand();
-    _project = FlutterProject.current();
     if (!supported) {
       throwToolExit('Building frameworks for iOS is only supported on the Mac.');
     }
 
-    if (boolArg('universal')) {
+    if (boolArgDeprecated('universal')) {
       throwToolExit('--universal has been deprecated, only XCFrameworks are supported.');
     }
     if ((await getBuildInfos()).isEmpty) {
@@ -162,7 +162,7 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
 
   @override
   Future<FlutterCommandResult> runCommand() async {
-    final String outputArgument = stringArg('output')
+    final String outputArgument = stringArgDeprecated('output')
         ?? globals.fs.path.join(globals.fs.currentDirectory.path, 'build', 'ios', 'framework');
 
     if (outputArgument.isEmpty) {
@@ -177,19 +177,17 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
     final List<BuildInfo> buildInfos = await getBuildInfos();
     displayNullSafetyMode(buildInfos.first);
     for (final BuildInfo buildInfo in buildInfos) {
-      final String productBundleIdentifier = await _project.ios.productBundleIdentifier(buildInfo);
+      final String? productBundleIdentifier = await _project.ios.productBundleIdentifier(buildInfo);
       globals.printStatus('Building frameworks for $productBundleIdentifier in ${getNameForBuildMode(buildInfo.mode)} mode...');
-      final String xcodeBuildConfiguration = toTitleCase(getNameForBuildMode(buildInfo.mode));
+      final String xcodeBuildConfiguration = sentenceCase(getNameForBuildMode(buildInfo.mode));
       final Directory modeDirectory = outputDirectory.childDirectory(xcodeBuildConfiguration);
 
       if (modeDirectory.existsSync()) {
         modeDirectory.deleteSync(recursive: true);
       }
 
-      if (boolArg('cocoapods')) {
-        // FlutterVersion.instance kicks off git processing which can sometimes fail, so don't try it until needed.
-        _flutterVersion ??= globals.flutterVersion;
-        produceFlutterPodspec(buildInfo.mode, modeDirectory, force: boolArg('force'));
+      if (boolArgDeprecated('cocoapods')) {
+        produceFlutterPodspec(buildInfo.mode, modeDirectory, force: boolArgDeprecated('force'));
       } else {
         // Copy Flutter.xcframework.
         await _produceFlutterFramework(buildInfo, modeDirectory);
@@ -262,7 +260,7 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
       // Fake out a semantic version with major.minor.(patch * 100) + hotfix.
       // A real increasing version is required to prompt CocoaPods to fetch
       // new artifacts when the source URL changes.
-      final int minorHotfixVersion = gitTagVersion.z * 100 + (gitTagVersion.hotfix ?? 0);
+      final int minorHotfixVersion = (gitTagVersion.z ?? 0) * 100 + (gitTagVersion.hotfix ?? 0);
 
       final File license = _cache.getLicenseFile();
       if (!license.existsSync()) {
@@ -289,7 +287,7 @@ LICENSE
   s.author                = { 'Flutter Dev Team' => 'flutter-dev@googlegroups.com' }
   s.source                = { :http => '${_cache.storageBaseUrl}/flutter_infra_release/flutter/${_cache.engineRevision}/$artifactsMode/artifacts.zip' }
   s.documentation_url     = 'https://flutter.dev/docs'
-  s.platform              = :ios, '9.0'
+  s.platform              = :ios, '11.0'
   s.vendored_frameworks   = 'Flutter.xcframework'
 end
 ''';
@@ -308,7 +306,7 @@ end
     final Status status = globals.logger.startProgress(
       ' ├─Copying Flutter.xcframework...',
     );
-    final String engineCacheFlutterFrameworkDirectory = globals.artifacts.getArtifactPath(
+    final String engineCacheFlutterFrameworkDirectory = globals.artifacts!.getArtifactPath(
       Artifact.flutterXcframework,
       platform: TargetPlatform.ios,
       mode: buildInfo.mode,
@@ -359,7 +357,7 @@ end
           projectDir: globals.fs.currentDirectory,
           outputDir: outputBuildDirectory,
           buildDir: _project.dartTool.childDirectory('flutter_build'),
-          cacheDir: null,
+          cacheDir: globals.cache.getRoot(),
           flutterRootDir: globals.fs.directory(Cache.flutterRoot),
           defines: <String, String>{
             kTargetFile: targetFile,
@@ -368,15 +366,15 @@ end
             kIosArchs: defaultIOSArchsForEnvironment(sdkType)
                 .map(getNameForDarwinArch)
                 .join(' '),
-            kSdkRoot: await globals.xcode.sdkLocation(sdkType),
+            kSdkRoot: await globals.xcode!.sdkLocation(sdkType),
             ...buildInfo.toBuildSystemEnvironment(),
           },
-          artifacts: globals.artifacts,
+          artifacts: globals.artifacts!,
           fileSystem: globals.fs,
           logger: globals.logger,
           processManager: globals.processManager,
           platform: globals.platform,
-          engineVersion: globals.artifacts.isLocalEngine
+          engineVersion: globals.artifacts!.isLocalEngine
               ? null
               : globals.flutterVersion.engineRevision,
           generateDartPluginRegistry: true,
@@ -422,7 +420,7 @@ end
           'bitcode' : 'marker'; // In release, force bitcode embedding without archiving.
 
       List<String> pluginsBuildCommand = <String>[
-        ...globals.xcode.xcrunCommand(),
+        ...globals.xcode!.xcrunCommand(),
         'xcodebuild',
         '-alltargets',
         '-sdk',
@@ -433,12 +431,13 @@ end
         'BITCODE_GENERATION_MODE=$bitcodeGenerationMode',
         'ONLY_ACTIVE_ARCH=NO', // No device targeted, so build all valid architectures.
         'BUILD_LIBRARY_FOR_DISTRIBUTION=YES',
+        if (boolArg('static') ?? false)
+          'MACH_O_TYPE=staticlib',
       ];
 
       RunResult buildPluginsResult = await globals.processUtils.run(
         pluginsBuildCommand,
         workingDirectory: _project.ios.hostAppRoot.childDirectory('Pods').path,
-        allowReentrantFlutter: false,
       );
 
       if (buildPluginsResult.exitCode != 0) {
@@ -446,9 +445,9 @@ end
       }
 
       // Always build debug for simulator.
-      final String simulatorConfiguration = toTitleCase(getNameForBuildMode(BuildMode.debug));
+      final String simulatorConfiguration = sentenceCase(getNameForBuildMode(BuildMode.debug));
       pluginsBuildCommand = <String>[
-        ...globals.xcode.xcrunCommand(),
+        ...globals.xcode!.xcrunCommand(),
         'xcodebuild',
         '-alltargets',
         '-sdk',
@@ -459,6 +458,8 @@ end
         'ENABLE_BITCODE=YES', // Support host apps with bitcode enabled.
         'ONLY_ACTIVE_ARCH=NO', // No device targeted, so build all valid architectures.
         'BUILD_LIBRARY_FOR_DISTRIBUTION=YES',
+        if (boolArg('static') ?? false)
+          'MACH_O_TYPE=staticlib',
       ];
 
       buildPluginsResult = await globals.processUtils.run(
@@ -466,7 +467,6 @@ end
         workingDirectory: _project.ios.hostAppRoot
           .childDirectory('Pods')
           .path,
-        allowReentrantFlutter: false,
       );
 
       if (buildPluginsResult.exitCode != 0) {
@@ -497,7 +497,7 @@ end
             podProduct as Directory,
             simulatorBuildConfiguration
                 .childDirectory(builtProduct.basename)
-                .childDirectory(podFrameworkName)
+                .childDirectory(podFrameworkName),
           ];
 
           await _produceXCFramework(frameworks, binaryName, modeDirectory);
@@ -510,11 +510,11 @@ end
 
   Future<void> _produceXCFramework(Iterable<Directory> frameworks,
       String frameworkBinaryName, Directory outputDirectory) async {
-    if (!boolArg('xcframework')) {
+    if (!boolArgDeprecated('xcframework')) {
       return;
     }
     final List<String> xcframeworkCommand = <String>[
-      ...globals.xcode.xcrunCommand(),
+      ...globals.xcode!.xcrunCommand(),
       'xcodebuild',
       '-create-xcframework',
       for (Directory framework in frameworks) ...<String>[
@@ -527,15 +527,14 @@ end
                 entity.basename.endsWith('dSYM'))
             .map((FileSystemEntity entity) =>
                 <String>['-debug-symbols', entity.path])
-            .expand<String>((List<String> parameter) => parameter)
+            .expand<String>((List<String> parameter) => parameter),
       ],
       '-output',
-      outputDirectory.childDirectory('$frameworkBinaryName.xcframework').path
+      outputDirectory.childDirectory('$frameworkBinaryName.xcframework').path,
     ];
 
     final RunResult xcframeworkResult = await globals.processUtils.run(
       xcframeworkCommand,
-      allowReentrantFlutter: false,
     );
 
     if (xcframeworkResult.exitCode != 0) {
